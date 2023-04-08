@@ -43,7 +43,7 @@ int main(int argc, char** argv ) {
 
     Mat labels, centers;
     kmeans(samples, clustersCount, labels, 
-    TermCriteria( CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 10, 0.01 ),
+    TermCriteria(  TermCriteria::EPS+TermCriteria::COUNT, 10, 0.01 ),
     iterations, KMEANS_PP_CENTERS, centers);
     //show clusters on image
     Mat clusteredImage( image.size(), image.type() );
