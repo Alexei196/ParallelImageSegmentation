@@ -4,6 +4,8 @@
 
 using namespace cv;
 
+int distance(const int&, const int&);
+
 int main(int argc, char** argv ) {
     if ( argc != 2 ) {
         printf("usage: kmeans.exe <Image_Path>\n");
@@ -23,52 +25,50 @@ int main(int argc, char** argv ) {
         Scalar(0, 0, 255)
     };
     //set up for kmeans
-    int clustersCount = 3, iterations = 5;
+    const int clustersCount = 3, iterations = 10;
 
-    Mat samples(image.total(), 3, CV_32F);
-    auto samples_ptr = samples.ptr<float>(0);
-    
-    for(int row = 0; row != image.rows; ++rows) {
-        auto src_begin = imputImage.ptr<uchar>(row);
-        auto src_end = src_begin + image.cols * image.channels();
-
-        while(src_begin != src_end) {
-            samples_ptr[0]= src_begin[0];
-            samples_ptr[1]= src_begin[1];
-            samples_ptr[2]= src_begin[2];
-            samples_ptr+=3;
-            src_begin+=3; 
+    //1. Define random centroids for k clusters
+    int centroids[clustersCount];
+    long long int centroidSum[clustersCount];
+    int centroidCount[clustersCount];
+    for(int i = 0; i < clustersCount; ++i) {
+        centroids[i] = rand() % 256;
+        centroidSum[i] = 0;
+        centroidCount[i] = 0;
+    }
+    //2. Assign data to closest centroid
+    int lowestDistance = 65536, closestCentroid = 0;
+    //For each iteration of the k-means alg
+    for(int i = 0; i < iterations; ++i) {
+        //For each pixel in image
+        for(int y = 0; y < image.rows(); ++y) {
+            for(int x = 0; x < image.cols(); ++x) {     
+                //For each centroid in existence
+                //TODO reset distance and closest centroid
+                for(int c = 0; c < clustersCount; ++c) {
+                    if(distance((int)image.at<int>(y,x), centroids[c]) < lowestDistance) {
+                        closestCentroid = c;
+                        lowestDistance = distance((int)image.at<int>(y,x), centroids[c]);
+                    }
+                }
+                centroidSum[closestCentroid] += (long long int)image.at<int>(y,x);
+                centroidCount[closestCentroid] += 1;
+            }
+        }
+        //3. Assign centroid to average of each grouped data
+        for(int c = 0; c < clustersCount; ++c) {
+            centroids[c] = centroidSum[c] / centroidCount[c];
         }
     }
-
-    Mat labels, centers;
-    kmeans(samples, clustersCount, labels, 
-    TermCriteria(  TermCriteria::EPS+TermCriteria::COUNT, 10, 0.01 ),
-    iterations, KMEANS_PP_CENTERS, centers);
-    //show clusters on image
-    Mat clusteredImage( image.size(), image.type() );
-    for( int row = 0; row != image.rows; ++row ){
-        auto clusteredImageBegin = clusteredImage.ptr<uchar>(row);
-        auto clusteredImageEnd = clusteredImageBegin + clusteredImage.cols * 3;
-        auto labels_ptr = labels.ptr<int>(row * image.cols);
-    
-        //while the end of the image hasn't been reached...
-        while( clusteredImageBegin != clusteredImageEnd ){
-            //current label index:
-            int const cluster_idx = *labels_ptr;
-            //get the center of that index:
-            auto centers_ptr = centers.ptr<float>(cluster_idx);
-            clusteredImageBegin[0] = centers_ptr[0];
-            clusteredImageBegin[1] = centers_ptr[1];
-            clusteredImageBegin[2] = centers_ptr[2];
-    
-            clusteredImageBegin += 3; ++labels_ptr;
-        }
-    }
+     //4. perform 2 and 3 i amount of times   
 
     namedWindow("Display Image", WINDOW_AUTOSIZE );
     imshow("Display Image", clusteredImage);
 
     waitKey(0);
     return 0;
+}
+
+int distance(const int &l1, const int &l2) {
+    return l2 - l1;
 }
