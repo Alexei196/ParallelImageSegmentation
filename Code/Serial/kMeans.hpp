@@ -5,32 +5,6 @@
 
 using namespace cv;
 
-int distance(const int&, const int&);
-Mat kMeans(const Mat&, const int&, const int&, int);
-
-int main(int argc, char** argv ) {
-    if ( argc != 2 ) {
-        printf("usage: kmeans.exe <Image_Path>\n");
-        return -1;
-    }
-
-    //load image into matrix
-    Mat image = imread( argv[1], IMREAD_GRAYSCALE);
-    if ( !image.data ) {
-        printf("No image data \n");
-        return -1;
-    }
-    //Setup for k means analysis
-    //set up for kmeans
-    Mat clusteredImage = kMeans(image, 4, 7, 4);
-
-    namedWindow("Kmeans Image", WINDOW_AUTOSIZE );
-    imshow("Original Image", image);
-    imshow("Kmeans Image", clusteredImage);
-    waitKey(0);
-    return 0;
-}
-
 int distance(const int &l1, const int &l2) {
     return (l2 - l1) < 0 ? -1*(l2-l1) : (l2-l1);
 }

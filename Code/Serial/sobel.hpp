@@ -1,15 +1,14 @@
 #include <stdio.h>
 #include <opencv2/opencv.hpp>
+
 using namespace cv;
 using namespace std;
 
-int main(int argc, char **argv)
-{   
-    Mat image = imread("C:/Users/mdp72/Documents/VS Code Projects/openCV/image(2).jpg");
-    Mat gray_img;
-    cvtColor(image, gray_img, COLOR_BGR2GRAY);
+Mat sobel(const Mat &gray_img, int threshold) {
     Mat sobel_img(gray_img.rows, gray_img.cols, CV_8UC1);
-    double threshold = 60;
+    if(threshold < 256) {
+        threshold*= threshold;
+    }
 
     for (int row = 0; row < gray_img.rows; row++)
         for (int col = 0; col < gray_img.cols; col++)
@@ -25,12 +24,12 @@ int main(int argc, char **argv)
             Mat y = (Mat_<int>(3, 3) << 1, 2, 1, 0, 0, 0, -1, -2, -1);
             double G_x = sum(G.mul(x))[0];
             double G_y = sum(G.mul(y))[0];
-            double pixel = sqrt(pow(G_x, 2) + pow(G_y, 2));
+            double pixel = pow(G_x, 2) + pow(G_y, 2);
             if (pixel <= threshold)
                 pixel = 0;
+            else 
+                pixel = 255;
             sobel_img.at<unsigned char>(col,row) = pixel;
         }
-    cv::namedWindow("Sobel");
-    cv::imshow("Sobel",sobel_img);
-    cv::waitKey(0);
+    return sobel_img;
 }
