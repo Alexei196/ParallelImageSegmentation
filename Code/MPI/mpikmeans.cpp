@@ -124,14 +124,18 @@ Mat kMeans(const Mat& image, const int& clustersCount, const int& iterations, in
 }
 
 Mat sobel(const Mat &gray_img, int threshold) {
-    Mat sobel_img(gray_img.rows-2, gray_img.cols-2, CV_8UC1);
+    Mat sobel_img(gray_img.rows, gray_img.cols, CV_8UC1);
     if(threshold < 256) {
         threshold*= threshold;
     }
 
-    for (int row = 0; row < gray_img.rows - 2; row++)
-        for (int col = 0; col < gray_img.cols - 2; col++)
+    for (int row = 0; row < gray_img.rows; row++)
+        for (int col = 0; col < gray_img.cols; col++)
         {
+            if (row >= gray_img.rows - 2 || col >= gray_img.cols - 2){
+                sobel_img.at<unsigned char>(col,row) = 0;
+                continue;
+            }
             Mat G;
             gray_img(cv::Rect(row, col, 3, 3)).copyTo(G);
             G.convertTo(G, CV_32SC1);
