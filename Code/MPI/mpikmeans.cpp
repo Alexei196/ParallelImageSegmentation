@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
     //for each chunk perform k-means
     //TODO kmeans must be split up to work between processes
     Mat kMeansImg = kMeans(imageSlices[my_rank], 3, 3, 4);
-    printf("kmeans, ");
+    printf("kmeans, %d", image.type());
     //after k means is finished, each process calls sobel on their chunk
     //Mat sobelImg = sobel(kMeansImg, 40);
     printf("sobel \n");
