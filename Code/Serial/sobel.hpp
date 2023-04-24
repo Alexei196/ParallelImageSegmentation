@@ -14,12 +14,13 @@ Mat sobel(const Mat &gray_img, int threshold) {
     for (int row = 0; row < gray_img.rows; row++)
         for (int col = 0; col < gray_img.cols; col++)
         {
-            try {if (row >= gray_img.rows - 2 || col >= gray_img.cols - 2){
-                sobel_img.at<unsigned char>(col,row) = 0;
+            try {
+                if (row >= gray_img.rows - 2 || col >= gray_img.cols - 2){
+                sobel_img.at<unsigned char>(row,col) = 0;
                 continue;
             }
             Mat G;
-            gray_img(cv::Rect(row, col, 3, 3)).copyTo(G);
+            gray_img(cv::Rect(col, row, 3, 3)).copyTo(G);
             G.convertTo(G, CV_32SC1);
             Mat x = (Mat_<int>(3, 3) << 1, 0, -1, 2, 0, -2, 1, 0, -1);
             Mat y = (Mat_<int>(3, 3) << 1, 2, 1, 0, 0, 0, -1, -2, -1);
@@ -30,7 +31,7 @@ Mat sobel(const Mat &gray_img, int threshold) {
                 pixel = 0;
             else 
                 pixel = 128;
-            sobel_img.at<unsigned char>(col,row) = pixel;
+            sobel_img.at<unsigned char>(row,col) = pixel;
             } catch(int error) {
                 fprintf(stderr, "ERROR:%d\n", error);
                 continue;
