@@ -1,0 +1,3 @@
+/home/andrew/Documents/ParallelImageSegmentation/Code/Serial/CMakeFiles/kmeans.dir
+/home/andrew/Documents/ParallelImageSegmentation/Code/Serial/CMakeFiles/edit_cache.dir
+/home/andrew/Documents/ParallelImageSegmentation/Code/Serial/CMakeFiles/rebuild_cache.dir
