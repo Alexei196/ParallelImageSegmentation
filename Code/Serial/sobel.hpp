@@ -4,6 +4,7 @@
 using namespace cv;
 using namespace std;
 
+//Only works on square images
 Mat sobel(const Mat &gray_img, int threshold) {
     Mat sobel_img(gray_img.rows, gray_img.cols, CV_8UC1);
     if(threshold < 256) {
@@ -13,7 +14,7 @@ Mat sobel(const Mat &gray_img, int threshold) {
     for (int row = 0; row < gray_img.rows; row++)
         for (int col = 0; col < gray_img.cols; col++)
         {
-            if (row >= gray_img.rows - 2 || col >= gray_img.cols - 2){
+            try {if (row >= gray_img.rows - 2 || col >= gray_img.cols - 2){
                 sobel_img.at<unsigned char>(col,row) = 0;
                 continue;
             }
@@ -28,8 +29,12 @@ Mat sobel(const Mat &gray_img, int threshold) {
             if (pixel <= threshold)
                 pixel = 0;
             else 
-                pixel = 255;
+                pixel = 128;
             sobel_img.at<unsigned char>(col,row) = pixel;
+            } catch(int error) {
+                fprintf(stderr, "ERROR:%d\n", error);
+                continue;
+            }
         }
     return sobel_img;
 }

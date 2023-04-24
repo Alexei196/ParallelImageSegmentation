@@ -7,15 +7,15 @@
 using namespace cv;
 
 int main(int argc, char** argv){
-    Mat image = imread(argv[1]);
+    Mat image = imread(argv[1], IMREAD_GRAYSCALE);
     if(!image.data) { 
         fprintf(stderr, "Cannot read file\n");
         return 1;
     }
 
-    image = kMeans(image, 3, 3, 2);
-    
-    namedWindow("IMage", WINDOW_AUTOSIZE);
+    Mat kimage = kMeans(image, 3,5, 2);
+    Mat simage = sobel(kimage, 60);
+
     imshow("After Image", image);
     waitKey(0);
     return 0;

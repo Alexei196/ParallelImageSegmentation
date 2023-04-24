@@ -11,6 +11,7 @@ int distance(const int &l1, const int &l2) {
 
 Mat kMeans(const Mat& image, const int& clustersCount, const int& iterations, int threadCount) {
     //1. Define random centroids for k clusters
+    Mat centroidAssigned;
     long long int centroidSum[clustersCount];
     int centroids[clustersCount], centroidCount[clustersCount];
     for(int i = 0; i < clustersCount; ++i) {
@@ -20,7 +21,7 @@ Mat kMeans(const Mat& image, const int& clustersCount, const int& iterations, in
     }
 
     //2. Assign data to closest centroid
-    Mat centroidAssigned = image.clone();
+    centroidAssigned = Mat(image.rows, image.cols, CV_8UC1);
     int lowestDistance, closestCentroid, c;
     int colorScale = 256 / (clustersCount);
     long int y, x;
@@ -30,7 +31,6 @@ Mat kMeans(const Mat& image, const int& clustersCount, const int& iterations, in
         #pragma omp parallel for num_threads(threadCount) \
         default(none) shared(image, centroidAssigned, colorScale, centroids, centroidSum, centroidCount, clustersCount) private(y,x, c, closestCentroid, lowestDistance) 
         for(y = 0; y < image.rows; ++y) {
-            if(omp_get_thread_num() > 0) printf("Thread %d reporting\n", omp_get_thread_num());
             for(x = 0; x < image.cols; ++x) {
                 // option for centroids to ignore all low value/black pixels
                 if((int)image.at<unsigned char>(y,x) < 24) {
@@ -47,7 +47,7 @@ Mat kMeans(const Mat& image, const int& clustersCount, const int& iterations, in
                     }
                 }
                 //Now that centroids are found, replace the pixels with the color of the centroid
-                centroidAssigned.at<unsigned char>(y,x) = closestCentroid * colorScale;
+                centroidAssigned.at<unsigned char>(y,x) = (unsigned char) (closestCentroid * colorScale);
                 centroidSum[closestCentroid] += (long long int)image.at<unsigned char>(y,x);
                 centroidCount[closestCentroid] += 1;
             }
