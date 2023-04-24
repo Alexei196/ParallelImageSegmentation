@@ -7,57 +7,59 @@ namespace fs = std::filesystem;
 using namespace cv;
 
 int main(int argc, char** argv) {
-    int comm_sz, my_rank;    
+    int comm_sz, my_rank;
+    fs::path folderPath;
     MPI_Init(NULL, NULL);
     MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
     //Read folder, 
     if(my_rank == 0) {
-        fs::path folderPath = new fs::path();
+        folderPath = argv[1];
         if(!fs::exists(folderPath)) {
             fprintf(stderr, "Specified path does not exist!\n");
             MPI_Abort();
             return 1;
         } else {
-            //TODO get directory iterator
+            //found folder result
         }
     }
     MPI_Barrier(MPI_COMM_WORLD);
-    //TODO setup foreach loop to look at each image
- 
-    //For each file in folder
-    Mat image = imread(/*IMAGEPATH*/);
-
-    //Split file into equal chunks specified by the amount of processes
+    Mat image, kMeansImg, imageSlice;
     const int portions = comm_sz; 
+    int imageCount = 0;
     Mat imageSlices[portions];
-
-    for(int i = 0; i < portions; ++i) {
-        imageSlices[i] = Mat(Range((image.rows * i / comm_sz), (image.rows * (i+1) / comm_sz) - 1), Range(0, image.cols));
+    //foreach loop to look at each image
+    for(auto const& imageFile : fs::directory_iterator{folderPath}) {
+        image = imread(imageFile);
+        
+        //Split file into equal chunks specified by the amount of processes
+        for(int i = 0; i < portions; ++i) {
+            imageSlice = Mat(Range((image.rows * i / comm_sz), (image.rows * (i+1) / comm_sz) - 1), Range(0, image.cols));
+            if(my_rank == i) {
+                MPI_Recv(imageSlice, imageSlice.size, MPI_)
+            }
+        }
+        
+        kMeansImg = kMeans(imageSlices[my_rank], 3, 3, 4);
+        //for each chunk perform k-means
+        //TODO kmeans must be split up to work between processes
+        //after k means is finished, each process calls sobel on their chunk
+        //Mat sobelImg = sobel(kMeansImg, 40);
+        imageSlices[my_rank] = kMeansImg;
+        if(my_rank != 0) {
+            vconcat(imageSlices[0], imageSlices[my_rank], imageSlices[0]);
+        } 
+        MPI_Barrier(MPI_COMM_WORLD);
+        if(my_rank == 0) {
+            //and output the image as jpg.   
+            char fileName[64];
+            sprintf(fileName, "brainRegions%d.jpg", imageCount++);
+            imwrite(fileName, image);
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
     }
-    //for each chunk perform k-means
-    //TODO kmeans must be split up to work between processes
-    Mat kMeansImg = kMeans(imageSlices[my_rank], 3, 3, 4);
-    printf("kmeans, %d", image.type());
-    //after k means is finished, each process calls sobel on their chunk
-    //Mat sobelImg = sobel(kMeansImg, 40);
-    printf("sobel \n");
-    imageSlices[my_rank] = kMeansImg;
-    MPI_Barrier();
-
     //processes then merge their chunks together on rank 0 
     //TODO order concatinations
-    if(my_rank != 0) {
-        vconcat(imageSlices[0], imageSlices[my_rank], imageSlices[0]);
-    }
-    MPI_Barrier(MPI_COMM_WORLD);
-    
-    //and output the image as jpg.   
-    if(my_rank == 0) {
-        char fileName[64];
-        sprintf(fileName, "brainRegions%d.jpg", 1);
-        imwrite(fileName, image);
-    }
     MPI_Finalize();
     return 0;
 }
