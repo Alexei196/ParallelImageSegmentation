@@ -16,7 +16,7 @@ int main(int argc, char** argv){
     Mat kimage = kMeans(image, 3,5, 2);
     Mat simage = sobel(kimage, 60);
 
-    imshow("After Image", image);
+    imshow("After Image", simage);
     waitKey(0);
     return 0;
 }

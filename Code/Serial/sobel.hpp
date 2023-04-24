@@ -14,8 +14,7 @@ Mat sobel(const Mat &gray_img, int threshold) {
     for (int row = 0; row < gray_img.rows; row++)
         for (int col = 0; col < gray_img.cols; col++)
         {
-            try {
-                if (row >= gray_img.rows - 2 || col >= gray_img.cols - 2){
+            if (row >= gray_img.rows - 2 || col >= gray_img.cols - 2){
                 sobel_img.at<unsigned char>(row,col) = 0;
                 continue;
             }
@@ -32,10 +31,7 @@ Mat sobel(const Mat &gray_img, int threshold) {
             else 
                 pixel = 128;
             sobel_img.at<unsigned char>(row,col) = pixel;
-            } catch(int error) {
-                fprintf(stderr, "ERROR:%d\n", error);
-                continue;
-            }
+            } 
         }
     return sobel_img;
 }
