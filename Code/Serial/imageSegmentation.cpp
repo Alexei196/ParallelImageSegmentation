@@ -17,33 +17,31 @@ int main(int argc, char** argv){
     //user designates folder path to read from 
     const fs::path imagesFolder{argv[1]};
     //load output folder in exe folder, create one if not present
-    char outputFolderName[128]; 
-    sprintf(outputFolderName, "%s_KMeans_Images", imagesFolder.filename().u8string() );
-    fs::create_directory(outputFolderName);
+    std::cout << "Entered folderpath is " << imagesFolder.filename().u8string() << std::endl;
+    std:string outputFolderPath = imagesFolder.filename().u8string() + "_KMeans_Images";
+    fs::create_directory(outputFolderPath);
     //For each directory_entry in specified folder
     for (auto const& imageEntry : fs::directory_iterator{imagesFolder}) {
         fs::path imagePath = imageEntry.path();
-        std::cout << imagePath << '\n';
         //check for jpg
         if(imagePath.extension().u8string().compare(".jpg")) {
-            fprintf(stderr, "file %s is not a JPEG!\n", imagePath.filename());
+            std::cerr << "file " << imagePath.filename().u8string() << " is not a JPEG!" << std::endl; 
             continue;
         }
         //Do work on image
         Mat image = imread(imagePath.u8string(), IMREAD_GRAYSCALE);
         if(!image.data) { 
-            fprintf(stderr, "Cannot read file \"%s\"\n", imagePath);
+            std::cerr << "Cannot read file \"" << imagePath << "\"\n";
             continue;
         }
 
         Mat kimage = kMeans(image, 3,5, 2);
         Mat simage = sobel(kimage, 60);
-        Mat overlappedImage = overlap(simage, image);
+        //Mat overlappedImage = overlap(simage, image);
         //output store image result in folder
-        char outputImagePath[128];
-        sprintf(outputImagePath, "%s/%s.jpg", outputFolderName, imagePath.filename());
-        if(!imwrite(outputImagePath, overlappedImage) ) {
-            fprintf(stderr, "error writing \"%s\"", outputImagePath);
+        std::string outputFilePath = outputFolderPath + "/" + imagePath.filename().u8string(); 
+        if(!imwrite(outputFilePath, simage)) {
+            std::cerr << "error writing to \"" << outputFilePath << "\"\n";
             continue;
         }
     }

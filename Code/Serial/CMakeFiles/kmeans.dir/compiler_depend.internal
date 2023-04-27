@@ -421,4 +421,11 @@ CMakeFiles/kmeans.dir/imageSegmentation.cpp.o
  /usr/local/include/opencv4/opencv2/video/tracking.hpp
  /usr/local/include/opencv4/opencv2/video/background_segm.hpp
  /home/andrew/Documents/ParallelImageSegmentation/Code/Serial/sobel.hpp
+ /home/andrew/Documents/ParallelImageSegmentation/Code/Serial/overlap.hpp
+ /usr/include/c++/11/filesystem
+ /usr/include/c++/11/bits/fs_fwd.h
+ /usr/include/c++/11/bits/fs_path.h
+ /usr/include/c++/11/codecvt
+ /usr/include/c++/11/bits/fs_dir.h
+ /usr/include/c++/11/bits/fs_ops.h
 
