@@ -1,4 +1,5 @@
 #include<stdio.h>
+#include<iostream>
 #include<filesystem>
 #include<openmpi/mpi.h>
 #include <opencv2/opencv.hpp>
@@ -24,31 +25,30 @@ int main(int argc, char** argv) {
         }
     }
     MPI_Barrier(MPI_COMM_WORLD);
-    Mat image, kMeansImg, imageSlice;
-    const int portions = comm_sz; 
-    int imageCount = 0;
-    Mat imageSlices[portions];
     //foreach loop to look at each image
     for(auto const& imageFile : fs::directory_iterator{folderPath}) {
-        image = imread(imageFile);
-        
-        //Split file into equal chunks specified by the amount of processes
-        for(int i = 0; i < portions; ++i) {
-            imageSlice = Mat(Range((image.rows * i / comm_sz), (image.rows * (i+1) / comm_sz) - 1), Range(0, image.cols));
-            if(my_rank == i) {
-                MPI_Recv(imageSlice, imageSlice.size, MPI_)
+        Mat image = imread(imageFile);
+        std::cout << "Channels: " << image.channels() << std::endl;
+        size_t imageSize = image.step[0] * image.rows, sectionSize;
+        sectionSize = imageSize / comm_sz;
+        size_t remainder = imageSize - (sectionSize * comm_sz);
+        if(my_rank <= remainder) {
+            sectionSize +=1;
+        }
+        //init buffer for image buffer
+        unsigned char* sectionBuffer = malloc(sectionSize*sizeof(unsigned char));
+        //distribute image data across the world
+        MPI_Scatter(image.data, sectionSize, MPI_UNSIGNED_CHAR, sectionBuffer, sectionSize, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+        //For each iteration
+        for(int iter = 0; iter < iterations; ++iter) {
+            //for each pixel in buffer
+            for(size_t index = 0; index < sectionSize; ++index) {
+                unsigned char* pixel = &sectionBuffer[index];
+                //assign to a centroid
+            
             }
         }
-        
-        kMeansImg = kMeans(imageSlices[my_rank], 3, 3, 4);
-        //for each chunk perform k-means
-        //TODO kmeans must be split up to work between processes
-        //after k means is finished, each process calls sobel on their chunk
-        //Mat sobelImg = sobel(kMeansImg, 40);
-        imageSlices[my_rank] = kMeansImg;
-        if(my_rank != 0) {
-            vconcat(imageSlices[0], imageSlices[my_rank], imageSlices[0]);
-        } 
+
         MPI_Barrier(MPI_COMM_WORLD);
         if(my_rank == 0) {
             //and output the image as jpg.   
