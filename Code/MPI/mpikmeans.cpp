@@ -29,9 +29,12 @@ int main(int argc, char** argv) {
     for(auto const& imageFile : fs::directory_iterator{folderPath}) {
         Mat image = imread(imageFile);
         std::cout << "Channels: " << image.channels() << std::endl;
-        size_t imageSize = image.step[0] * image.rows, sectionSize;
-        sectionSize = imageSize / comm_sz;
+        size_t imageSize = image.step[0] * image.rows;
+        size_t sectionSize = imageSize / comm_sz;
         size_t remainder = imageSize - (sectionSize * comm_sz);
+        int centriodCount = 3, interations = 7;
+        int* centroids;
+
         if(my_rank <= remainder) {
             sectionSize +=1;
         }
@@ -39,16 +42,28 @@ int main(int argc, char** argv) {
         unsigned char* sectionBuffer = malloc(sectionSize*sizeof(unsigned char));
         //distribute image data across the world
         MPI_Scatter(image.data, sectionSize, MPI_UNSIGNED_CHAR, sectionBuffer, sectionSize, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+        
+        if(my_rank == 0) {
+            centroids = (int*) malloc(centriodCount * sizeof(int)); 
+            for(int i = 0; i < centriodCount; ++i) {
+                centroids[i] = (int) (rand() % 256);
+            }
+        }
         //For each iteration
         for(int iter = 0; iter < iterations; ++iter) {
+            //broadcast centroids
+            MPI_Bcast(); 
             //for each pixel in buffer
             for(size_t index = 0; index < sectionSize; ++index) {
                 unsigned char* pixel = &sectionBuffer[index];
                 //assign to a centroid
-            
+                
             }
-        }
 
+        }
+        //After the iterations, assign the pixels to their centroids and return to root
+
+        //root collects results and outputs as image
         MPI_Barrier(MPI_COMM_WORLD);
         if(my_rank == 0) {
             //and output the image as jpg.   
