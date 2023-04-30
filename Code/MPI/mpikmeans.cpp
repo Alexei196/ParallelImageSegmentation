@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <filesystem>
-#include <openmpi/mpi.h>
+#include <mpi.h>
 #include <opencv2/opencv.hpp>
 #include <math.h>
 #include <climits>
