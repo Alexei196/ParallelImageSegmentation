@@ -56,10 +56,17 @@ int main(int argc, char **argv)
             }
         }
         
+        // Added this
+        int * sectionSizePerThread = (int*)malloc(comm_sz * sizeof(int));
+        for(int i = 0; i < comm_sz; ++i) {
+          sectionSizePerThread[i] = (i < remainder) ? sectionSize + 1 : sectionSize;
+          displacement[i] = (i <=remainder) ? (sectionSize+1)*i : (i*sectionSize) + remainder;
+        }
+        
         // init buffer for image buffer
         unsigned char *sectionBuffer =  (unsigned char *) malloc(sectionSize * sizeof(unsigned char));
         // distribute image data across the world
-        MPI_Scatterv(image.data, sectionSize, MPI_UNSIGNED_CHAR, sectionBuffer, sectionSize, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+        MPI_Scatterv(image.data, sectionSizePerThread, MPI_UNSIGNED_CHAR, sectionBuffer, sectionSizePerThread, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
         if (my_rank == 0)
         {
