@@ -52,7 +52,7 @@ int main(int argc, char **argv)
         }
         displs[my_rank] = sectionSize;
         // init buffer for image buffer
-        unsigned char *sectionBuffer = malloc(sectionSize * sizeof(unsigned char));
+        unsigned char *sectionBuffer =  (unsigned char *) malloc(sectionSize * sizeof(unsigned char));
         // distribute image data across the world
         MPI_Scatterv(image.data, sectionSize, MPI_UNSIGNED_CHAR, sectionBuffer, sectionSize, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
@@ -68,15 +68,15 @@ int main(int argc, char **argv)
         // For each iteration
         for (int iter = 0; iter < iterations; ++iter)
         {
-            long long int globalCentroidSum[centroidCount];
-            long long int globalCentroidCounter[centroidCount];
+            long long int * globalCentroidSum = (long long int *)malloc(centroidCount * sizeof(long long int));
+            long long int * globalCentroidCounter = (long long int *)malloc(centroidCount * sizeof(long long int));
 
             // broadcast centroids
             MPI_Bcast(centroids, centroidCount, MPI_INT, 0, MPI_COMM_WORLD);
             // for each pixel in buffer
             // #pragma omp parallel for num_threads(threadCount)
-            long long int localCentroidSum[centroidCount];
-            long long int localCentroidCounter[centroidCount];
+            long long int * localCentroidSum = (long long int *)malloc(centroidCount * sizeof(long long int));
+            long long int * localCentroidCounter = (long long int *)malloc(centroidCount * sizeof(long long int));
             for (size_t index = 0; index < sectionSize; ++index)
             {
                 unsigned char *pixel = &sectionBuffer[index];
@@ -107,8 +107,8 @@ int main(int argc, char **argv)
 
             for (int centroid_index = 0; centroid_index < centroidCount; centroid_index++)
             {
-                MPI_Reduce(&localCentroidSum[centroid_index], &globalCentroidSum[centroid_index], 1, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-                MPI_Reduce(&localCentroidCounter[centroid_index], &globalCentroidCounter[centroid_index], 1, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+                MPI_Reduce(localCentroidSum[centroid_index], globalCentroidSum[centroid_index], 1, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+                MPI_Reduce(localCentroidCounter[centroid_index], globalCentroidCounter[centroid_index], 1, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
             }
             // Step 3: after all pixels are added, calculate new centroid
             for (int centroid_index = 0; centroid_index < centroidCount; centroid_index++)
@@ -149,9 +149,8 @@ int main(int argc, char **argv)
                 current_pixel = closest_centroid / (256 / centroidCount);
             }
 
-
         // Step 6: process 0 retrieves all
-        unsigned char * recvBuffer = malloc(sectionSize * sizeof(unsigned char));
+        unsigned char * recvBuffer = ( unsigned char *) malloc(sectionSize * sizeof(unsigned char));
         int MPI_Gatherv(sectionBuffer, sectionSize, MPI_UNSIGNED_CHAR, recvBuffer, sectionSize, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
         if (my_rank == 0)
