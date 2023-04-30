@@ -46,11 +46,16 @@ int main(int argc, char **argv)
         int * displs = (int*)malloc(comm_sz * sizeof(int));
         displs[0] = 0;
 
-        if (my_rank <= remainder)
-        {
-            sectionSize += 1;
+        for(int i = 0; i < comm_sz; i++) {
+             if (i <= remainder)
+            {
+                sectionSize += 1;
+                displs[i] = (sectionSize+1)*i;
+            } else {
+                displs[i] = (i*sectionSize) + remainder;
+            }
         }
-        displs[my_rank] = sectionSize;
+        
         // init buffer for image buffer
         unsigned char *sectionBuffer =  (unsigned char *) malloc(sectionSize * sizeof(unsigned char));
         // distribute image data across the world
