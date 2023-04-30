@@ -1,7 +1,8 @@
 #include<iostream>
 #include<filesystem>
 #include<string>
-#include<upcxx/upcxx.h>
+#include<upcxx/upcxx.hpp>
+#include<opencv2/opencv.hpp>
 
 #define IS_MASTER_PROCESS my_rank == 0
 
@@ -9,12 +10,20 @@ namespace fs = std::filesystem;
 using namespace cv;
 
 int distance(const unsigned char&, const unsigned char&);
+long long int reduceToRank0(long long int);
 
 int main(int argc, char** argv) {
     //init upc++
-    upcxx::upcxx_init();
+    upcxx::init();
     int comm_sz = upcxx::rank_n(), my_rank = upcxx::rank_me();
-    std:string outputFolderPath;
+    std::string outputFolderPath;
+    if(my_rank == 0) {
+        if(argc < 2) {
+            std::cerr << "Usage: upcKmeans <DIRPATH>\n";
+            upcxx::finalize();
+            return 1;
+        }
+    }
     //designate folder of images and create folder for output
     const fs::path imagesFolder{argv[1]};
     if(IS_MASTER_PROCESS) {
@@ -23,11 +32,15 @@ int main(int argc, char** argv) {
     }
     //TODO ensure each process has access to imageEntry
     //for each entry in the directory
+    std::cout << "Looking through the folder...\n";
     for (auto const& imageEntry : fs::directory_iterator{imagesFolder}) {
         fs::path imagePath = imageEntry.path();
+
+        const int iterations = 7, clustersCount = 3;
+        upcxx::global_ptr<unsigned char> globalImage_uchar = nullptr;
+        upcxx::global_ptr<unsigned char> centroids = nullptr;
         size_t imageSize;
-        size_t sectionSize;
-        size_t remainder;
+        size_t* localImageSize;
         //master checks path for errors
         if(IS_MASTER_PROCESS) {
             //check for jpg
@@ -41,30 +54,27 @@ int main(int argc, char** argv) {
                 std::cerr << "Cannot read file \"" << imagePath << "\"\n";
                 continue;
             }
+            //TODO share imagesize between processes
             imageSize = image.step[0] * image.rows;
-            sectionSize = imageSize / comm_sz;
-            remainder = imageSize - (sectionSize * comm_sz);
-        }
-        //Do kmeans
-        const int iterations = 7, clustersCount = 3;
-        //TODO Distribute image bytes
+            std::cout << "imageSize : " << imageSize << std::endl;
 
-        upcxx::global_ptr<unsigned char> globalImage_uChar = nullptr;
-        if(my_rank == 0) {
-            globalImage_uchar = upcxx::new_array<unsigned char>(imageSize);
-            for(int i = 0; i < image.size(); ++i) {
-                upcxx::rput(image.data[i], globalImage_uchar + i );
-            }
-        }
-        globalImage_uchar = upcxx::broadcast(centroids, 0).wait();
-        //distribute centroids
-        upcxx::global_ptr<unsigned char> centroids = nullptr;
-        if(my_rank == 0) {
             centroids = upcxx::new_array<unsigned char>(clustersCount);
             for(int i = 0; i < clustersCount; ++i) {
-                upcxx::rput((unsigned char) rand() % 256, centroids + i);
+                unsigned char randomNumber = (unsigned char) rand() % 256;
+                upcxx::rput(randomNumber, centroids + i);
+                std::cout << "centroid : " << (int) randomNumber << std::endl;
             }
+
+            globalImage_uchar = upcxx::new_array<unsigned char>( imageSize);
+            upcxx::rput(image.data, globalImage_uchar, imageSize);
+            std::cout << "Read the image " << imagePath << std::endl;
         }
+        //Do kmeans
+        
+        size_t sectionSize = ((size_t) localImageSize) / comm_sz;
+        size_t remainder = ((size_t)localImageSize) - (sectionSize * comm_sz);
+        globalImage_uchar = upcxx::broadcast(globalImage_uchar, 0).wait();
+        //distribute centroids
         centroids = upcxx::broadcast(centroids, 0).wait();
         
         unsigned char* localPixels = globalImage_uchar.local();
@@ -72,65 +82,59 @@ int main(int argc, char** argv) {
         long long int centroidSum[clustersCount], centroidCounter[clustersCount];
         int sectionStart = my_rank * sectionSize;
         int sectionEnd = my_rank < remainder ? ((1 + my_rank) * sectionSize) + 1 : ((1 + my_rank) * sectionSize) + 2;
-
+        upcxx::barrier();
+        std::cout << "starting iterations... \n";
         for(int iter = 0; iter < iterations; ++iter ) {
-            //distribute k centroids to processes
-            
-            
             //reset centroid sum and counter
+            std::cout << "Centroids:" << std::endl;
             for(int i = 0; i < clustersCount; ++i) {
                 centroidSum[i] = 0ll;
                 centroidCounter[i] = 0;
+                std::cout << " " << localCentroids[i];
             }
+
+            std::cout << std::endl << "init centroid sums and counters\n";
             //processes assign pixels to centroids
             for(int pIndex = sectionStart; pIndex < sectionEnd; ++pIndex) {
+                std::cout << "considering pixel " << pIndex << std::endl; 
                 int closestCentroidIndex = 0;
                 int closestCentroidDistance = distance(localPixels[pIndex], localCentroids[closestCentroidIndex]);
                 for(int centroidIndex = 0; centroidIndex < clustersCount; ++centroidIndex) {
-                    int centroidDistance = distance(pixel, localCentroids[centroidIndex]);
+                    int centroidDistance = distance(localPixels[pIndex], localCentroids[centroidIndex]);
                     if(centroidDistance < closestCentroidDistance) {
                         closestCentroidIndex = centroidIndex;
                         closestCentroidDistance = centroidDistance;
                     }
                 }
+                std::cout << "Centroid assigned to " << closestCentroidIndex << std::endl;
                 //TODO assign centroid
-                centroidSum[closestCentroidIndex] += (int) pixel;
-                centroidCounter[closestCentroidIndex] += (int) pixel;
+                centroidSum[closestCentroidIndex] += (int) localPixels[pIndex];
+                centroidCounter[closestCentroidIndex] += (int) localPixels[pIndex];
             }
             //processes share their centroid sums and counts via reduction
             for(int i = 0; i < clustersCount; ++i) {
-                localCentroids[i] = (unsigned char) (reduceToRank0(centroidSum[i]) / reduceToRank0(centroidCounter[i])); 
+                long int sums = 0ll, counts = 0ll; 
+                sums = upcxx::reduce_all(centroidSum[i], upcxx::op_fast_add).wait();
+                counts = upcxx::reduce_all(centroidCounter[i], upcxx::op_fast_add).wait();
+                localCentroids[i] = sums / counts;
             }
+            std::cout << "assigned centroids for iter " << iter << std::endl;
         }
         //after all iterations complete, return a new image of the assigned pixels
 
         //apply sobel and overlay on original image and 
 
-        //masterprocess writes image to file
-        if(IS_MASTER_PROCESS) {
-            std::string outputFilePath = outputFolderPath + "/" + imagePath.filename().u8string(); 
-            if(!imwrite(outputFilePath, simage)) {
-                std::cerr << "error writing to \"" << outputFilePath << "\"\n";
-                continue;
-            }
-        }
+        //TODO masterprocess writes image to file
+        
     }
 
     upcxx::barrier();
 
-    upcxx::upcxx_finalize();
+    upcxx::finalize();
     return 0;
 }
 
 //helper function distance between points l1 and l2
 int distance(const unsigned char &l1, const unsigned char &l2) {
     return (int) (l2 - l1) < 0 ? (int) -1*(l2-l1) : (int) (l2-l1);
-}
-
-void upcxxKmeans(int clusters, int iterations) {
-
-}
-
-long long int reduceToRank0(long long int count) {
-    return upcxx::allreduce(count, plus<long long int>()).wait();
 }

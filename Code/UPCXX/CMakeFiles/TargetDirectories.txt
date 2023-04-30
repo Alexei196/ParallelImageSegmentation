@@ -1,0 +1,3 @@
+/home/andrew/Documents/ParallelImageSegmentation/Code/UPCXX/CMakeFiles/upcxxKmeans.dir
+/home/andrew/Documents/ParallelImageSegmentation/Code/UPCXX/CMakeFiles/edit_cache.dir
+/home/andrew/Documents/ParallelImageSegmentation/Code/UPCXX/CMakeFiles/rebuild_cache.dir
