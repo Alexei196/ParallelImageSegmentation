@@ -40,11 +40,17 @@ int main(int argc, char **argv)
         size_t remainder = imageSize - (sectionSize * comm_sz);
         int centroidCount = 3, iterations = 7;
         int *centroids;
+        int imageCount;
+        imageCount++;
+        // Displacements for MPI_Gatherv at the end
+        int * displs = (int*)malloc(comm_sz * sizeof(int));
+        displs[0] = 0;
 
         if (my_rank <= remainder)
         {
             sectionSize += 1;
         }
+        displs[my_rank] = sectionSize;
         // init buffer for image buffer
         unsigned char *sectionBuffer = malloc(sectionSize * sizeof(unsigned char));
         // distribute image data across the world
@@ -59,13 +65,11 @@ int main(int argc, char **argv)
             }
         }
 
-        
-
         // For each iteration
         for (int iter = 0; iter < iterations; ++iter)
         {
-            long long int globalCentroidSum[] = new long long int[centroidCount];
-            long long int globalCentroidCounter[] = new long long int[centroidCount];
+            long long int globalCentroidSum[centroidCount];
+            long long int globalCentroidCounter[centroidCount];
 
             // broadcast centroids
             MPI_Bcast(centroids, centroidCount, MPI_INT, 0, MPI_COMM_WORLD);
@@ -117,33 +121,53 @@ int main(int argc, char **argv)
         // root collects results and outputs as image
         MPI_Barrier(MPI_COMM_WORLD);
 
-        // Step 4: Make Mat same size as original image
-        cv::Size size = image.size(); // get original size of image
-        cv::Mat outputMatrix(size, image.type()); // get new mat
+        // Step 4: assign each pixel the value of its assigned centroid -> how to upscale to  0 to 255
+        for (size_t index = 0; index < sectionSize; ++index)
+            {
+                unsigned char *pixel = &sectionBuffer[index];
 
-        // Step 5: assign each pixel the value of its assigned centroid -> how to upscale to  0 to 255
+                // Step 1: get closest centroid of current pixel
+                int current_pixel = *pixel;
+                if(current_pixel < 12) {continue;}
+                int closest_centroid = centroids[0]; // first centroid default is min
+
+                int min_brightness_diff = INT_MAX;
+                // Finds the closest centroid
+                for (int centroid_index = 0; centroid_index < centroidCount; centroid_index++)
+                {
+                    // compute difference in brightness for the current pixel and each centroid
+                    int current_centroid = centroids[centroid_index];
+                    int current_brightness_diff = brightness_distance(current_pixel, current_centroid);
+                    if (current_brightness_diff < min_brightness_diff)
+                    {
+                        min_brightness_diff = current_brightness_diff;
+                        closest_centroid = current_centroid;
+                    }
+                }
+
+                // assign each pixel the value of its closest centroid
+                current_pixel = closest_centroid / (256 / centroidCount);
+            }
+
 
         // Step 6: process 0 retrieves all
-        // for each pixel in output Matrix, assign each pixel it's centroid
         unsigned char * recvBuffer = malloc(sectionSize * sizeof(unsigned char));
-
-        // TODO: 
-        // we need to figure out the displacement array for gatherv
-        int MPI_Gatherv(sectionBuffer, sectionSize, MPI_UNSIGNED_CHAR, recvBuffer, sectionSize, , MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+        int MPI_Gatherv(sectionBuffer, sectionSize, MPI_UNSIGNED_CHAR, recvBuffer, sectionSize, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
         if (my_rank == 0)
         {
-            // Step 6: assign each pixel a the centroid value
+            // Make Mat same size as original image
+            //cv::Size size = image.size(); // get original size of image
+            //cv::Mat outputMatrix(size, image.type()); // get new mat
+            cv::Mat outputMatrix(image.rows, image.cols, image.type(), recvBuffer);
 
             // and output the image as jpg.
             char fileName[64];
             sprintf(fileName, "brainRegions%d.jpg", imageCount++);
-            imwrite(fileName, image);
+            imwrite(fileName, outputMatrix);
         }
         MPI_Barrier(MPI_COMM_WORLD);
     }
-    // processes then merge their chunks together on rank 0
-    // TODO order concatinations
     MPI_Finalize();
     return 0;
 }
