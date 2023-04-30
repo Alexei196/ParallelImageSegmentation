@@ -5,10 +5,26 @@
 #include <opencv2/opencv.hpp>
 #include <math.h>
 #include <climits>
+#include <limits.h>
 
 namespace fs = std::filesystem;
 using namespace cv;
 using namespace std;
+
+// Create Macros for size_t because MPI doesn't have that datatype
+#if SIZE_MAX == UCHAR_MAX
+   #define my_MPI_SIZE_T MPI_UNSIGNED_CHAR
+#elif SIZE_MAX == USHRT_MAX
+   #define my_MPI_SIZE_T MPI_UNSIGNED_SHORT
+#elif SIZE_MAX == UINT_MAX
+   #define my_MPI_SIZE_T MPI_UNSIGNED
+#elif SIZE_MAX == ULONG_MAX
+   #define my_MPI_SIZE_T MPI_UNSIGNED_LONG
+#elif SIZE_MAX == ULLONG_MAX
+   #define my_MPI_SIZE_T MPI_UNSIGNED_LONG_LONG
+#else
+   #error "datatype does not exist?"
+#endif
 
 int main(int argc, char **argv)
 {
@@ -33,40 +49,42 @@ int main(int argc, char **argv)
     for (auto const &imageFile : fs::directory_iterator{folderPath})
     {
 
-        Mat image = imread(imageFile);
-        std::cout << "Channels: " << image.channels() << std::endl;
-        size_t imageSize = image.step[0] * image.rows;
-        size_t sectionSize = imageSize / comm_sz;
-        size_t remainder = imageSize - (sectionSize * comm_sz);
+        unsigned char * recvBuffer;
+        unsigned char * sendBuffer;
         int centroidCount = 3, iterations = 7;
         int *centroids;
         int imageCount;
-        imageCount++;
-        // Displacements for MPI_Gatherv at the end
-        int * displs = (int*)malloc(comm_sz * sizeof(int));
-        displs[0] = 0;
+        int * displs;
+        size_t sectionSize;
+        Mat image;
+        if(my_rank == 0) {
+            image = imread(imageFile);
+            std::cout << "Channels: " << image.channels() << std::endl;
+            size_t imageSize = image.step[0] * image.rows;
+            recvBuffer = (unsigned char *) malloc(imageSize * sizeof(unsigned char));
+            sectionSize = imageSize / comm_sz; // Broadcast this
+            size_t remainder = imageSize - (sectionSize * comm_sz);
+            imageCount++;
+            // Displacements for MPI_Gatherv at the end
+            displs = (int*)malloc(comm_sz * sizeof(int));
+            displs[0] = 0;
 
-        for(int i = 0; i < comm_sz; i++) {
-             if (i <= remainder)
-            {
-                sectionSize += 1;
-                displs[i] = (sectionSize+1)*i;
-            } else {
-                displs[i] = (i*sectionSize) + remainder;
+            int * sectionSizePerThread = (int*)malloc(comm_sz * sizeof(int));
+            for(int i = 0; i < comm_sz; ++i) {
+                sectionSizePerThread[i] = (i < remainder) ? sectionSize + 1 : sectionSize;
+                displs[i] = (i <=remainder) ? (sectionSize+1)*i : (i*sectionSize) + remainder;
             }
+
+            // fill this buffer with image pixels
+            sendBuffer = (unsigned char *) malloc(imageSize * sizeof(unsigned char));
+            sendBuffer = image.data;
         }
-        
-        // Added this
-        int * sectionSizePerThread = (int*)malloc(comm_sz * sizeof(int));
-        for(int i = 0; i < comm_sz; ++i) {
-          sectionSizePerThread[i] = (i < remainder) ? sectionSize + 1 : sectionSize;
-          displacement[i] = (i <=remainder) ? (sectionSize+1)*i : (i*sectionSize) + remainder;
-        }
-        
+
+        MPI_Bcast(&sectionSize, 1, SIZE_MAX, 0, MPI_COMM_WORLD);
         // init buffer for image buffer
-        unsigned char *sectionBuffer =  (unsigned char *) malloc(sectionSize * sizeof(unsigned char));
+        unsigned char *sectionBuffer = (unsigned char *) malloc(sectionSize * sizeof(unsigned char));
         // distribute image data across the world
-        MPI_Scatterv(image.data, sectionSizePerThread, MPI_UNSIGNED_CHAR, sectionBuffer, sectionSizePerThread, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+        MPI_Scatterv(sendBuffer, sectionSizePerThread, MPI_UNSIGNED_CHAR, sectionBuffer, sectionSizePerThread, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
         if (my_rank == 0)
         {
@@ -142,6 +160,7 @@ int main(int argc, char **argv)
                 int current_pixel = *pixel;
                 if(current_pixel < 12) {continue;}
                 int closest_centroid = centroids[0]; // first centroid default is min
+                int closest_centroid_idx = 0;
 
                 int min_brightness_diff = INT_MAX;
                 // Finds the closest centroid
@@ -154,16 +173,16 @@ int main(int argc, char **argv)
                     {
                         min_brightness_diff = current_brightness_diff;
                         closest_centroid = current_centroid;
+                        closest_centroid_idx = centroid_index;
                     }
                 }
 
                 // assign each pixel the value of its closest centroid
-                current_pixel = closest_centroid / (256 / centroidCount);
+                current_pixel = closest_centroid_idx * (256 / centroidCount);
             }
 
         // Step 6: process 0 retrieves all
-        unsigned char * recvBuffer = ( unsigned char *) malloc(sectionSize * sizeof(unsigned char));
-        int MPI_Gatherv(sectionBuffer, sectionSize, MPI_UNSIGNED_CHAR, recvBuffer, sectionSize, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+        int MPI_Gatherv(sectionBuffer, sectionSizePerThread, MPI_UNSIGNED_CHAR, recvBuffer, sectionSizePerThread, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
         if (my_rank == 0)
         {
