@@ -58,16 +58,17 @@ int main(int argc, char **argv)
                 centroids[i] = (int)(rand() % 256);
             }
         }
-        long long int globalCentroidSum[centroidCount];
-        long long int globalCentroidCounter[centroidCount];
+
+        
+
         // For each iteration
         for (int iter = 0; iter < iterations; ++iter)
         {
-            // broadcast centroids
+            long long int globalCentroidSum[] = new long long int[centroidCount];
+            long long int globalCentroidCounter[] = new long long int[centroidCount];
 
+            // broadcast centroids
             MPI_Bcast(centroids, centroidCount, MPI_INT, 0, MPI_COMM_WORLD);
-            MPI_Bcast(globalCentroidSum, centroidCount, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
-            MPI_Bcast(globalCentroidCounter, centroidCount, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
             // for each pixel in buffer
             // #pragma omp parallel for num_threads(threadCount)
             long long int localCentroidSum[centroidCount];
@@ -75,10 +76,10 @@ int main(int argc, char **argv)
             for (size_t index = 0; index < sectionSize; ++index)
             {
                 unsigned char *pixel = &sectionBuffer[index];
-                // TODO assign to a centroid
+
                 // Step 1: get closest centroid of current pixel
                 int current_pixel = *pixel;
-                if(current_pixel < 12) {current_pixel = 0;}
+                if(current_pixel < 12) {continue;}
                 int closest_centroid = centroids[0]; // first centroid default is min
 
                 int min_brightness_diff = INT_MAX;
@@ -98,18 +99,19 @@ int main(int argc, char **argv)
                 // Step 2: add pixel value to centroid sum
                 localCentroidSum[closest_centroid] += current_pixel;
                 localCentroidCounter[closest_centroid]++;
-                MPI_Reduce(&localCentroidSum[closest_centroid], &globalCentroidSum[closest_centroid], 1, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-                MPI_Reduce(&localCentroidCounter[closest_centroid], &globalCentroidCounter[closest_centroid], 1, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-
-                // Step 3: after all pixels are added, calculate new centroid
-                for (int centroid_index = 0; centroid_index < centroidCount; centroid_index++)
-                {
-                    int new_centroid = globalCentroidSum[centroid_index] / globalCentroidCounter[centroid_index];
-                    centroids[centroid_index] = new_centroid;
-                }
-
             }
-                
+
+            for (int centroid_index = 0; centroid_index < centroidCount; centroid_index++)
+            {
+                MPI_Reduce(&localCentroidSum[centroid_index], &globalCentroidSum[centroid_index], 1, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+                MPI_Reduce(&localCentroidCounter[centroid_index], &globalCentroidCounter[centroid_index], 1, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+            }
+            // Step 3: after all pixels are added, calculate new centroid
+            for (int centroid_index = 0; centroid_index < centroidCount; centroid_index++)
+            {
+                int new_centroid = globalCentroidSum[centroid_index] / globalCentroidCounter[centroid_index];
+                centroids[centroid_index] = new_centroid;
+            } 
         }
 
         // root collects results and outputs as image
@@ -126,15 +128,11 @@ int main(int argc, char **argv)
         unsigned char * recvBuffer = malloc(sectionSize * sizeof(unsigned char));
 
         // TODO: 
-        // 1. we need to calculate the number of iterations
-        // 2. we need to figure out the displacement array for gatherv
-        // 
+        // we need to figure out the displacement array for gatherv
         int MPI_Gatherv(sectionBuffer, sectionSize, MPI_UNSIGNED_CHAR, recvBuffer, sectionSize, , MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
         if (my_rank == 0)
         {
-            
-
             // Step 6: assign each pixel a the centroid value
 
             // and output the image as jpg.
