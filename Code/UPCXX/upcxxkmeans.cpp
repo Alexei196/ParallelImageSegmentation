@@ -57,6 +57,7 @@ int main(int argc, char** argv) {
             //TODO share imagesize between processes
             imageSize = image.step[0] * image.rows;
             std::cout << "imageSize : " << imageSize << std::endl;
+            imageGlobalSize = upcxx::new_<size_t>(imageSize);
 
             centroids = upcxx::new_array<int>(clustersCount);
             for(int i = 0; i < clustersCount; ++i) {
@@ -70,7 +71,7 @@ int main(int argc, char** argv) {
             std::cout << "Read the image " << imagePath << std::endl;
         }
         //Do kmeans
-        
+        imageGlobalSize = upcxx::broadcast(imageGlobalSize, 0).wait();
         size_t sectionSize = ((size_t) localImageSize) / comm_sz;
         size_t remainder = ((size_t)localImageSize) - (sectionSize * comm_sz);
         globalImage_uchar = upcxx::broadcast(globalImage_uchar, 0).wait();
