@@ -6,25 +6,14 @@
 #include <math.h>
 #include <climits>
 #include <limits.h>
+#include <time.h>
+#include <sys/resource.h>
 
 namespace fs = std::filesystem;
 using namespace cv;
 using namespace std;
 
-// Create Macros for size_t because MPI doesn't have that datatype
-#if SIZE_MAX == UCHAR_MAX
-   #define my_MPI_SIZE_T MPI_UNSIGNED_CHAR
-#elif SIZE_MAX == USHRT_MAX
-   #define my_MPI_SIZE_T MPI_UNSIGNED_SHORT
-#elif SIZE_MAX == UINT_MAX
-   #define my_MPI_SIZE_T MPI_UNSIGNED
-#elif SIZE_MAX == ULONG_MAX
-   #define my_MPI_SIZE_T MPI_UNSIGNED_LONG
-#elif SIZE_MAX == ULLONG_MAX
-   #define my_MPI_SIZE_T MPI_UNSIGNED_LONG_LONG
-#else
-   #error "datatype does not exist?"
-#endif
+int brightness_distance(const int &l1, const int &l2);
 
 int main(int argc, char **argv)
 {
@@ -40,11 +29,12 @@ int main(int argc, char **argv)
         if (!fs::exists(folderPath))
         {
             fprintf(stderr, "Specified path does not exist!\n");
-            MPI_Abort();
+            MPI_Abort(MPI_COMM_WORLD, 1);
             return 1;
         }
     }
     MPI_Barrier(MPI_COMM_WORLD);
+    local_start = MPI_Wtime();
     // foreach loop to look at each image
     for (auto const &imageFile : fs::directory_iterator{folderPath})
     {
@@ -55,10 +45,11 @@ int main(int argc, char **argv)
         int *centroids;
         int imageCount;
         int * displs;
-        size_t sectionSize;
+        int sectionSize;
+        int * sectionSizePerThread;
         Mat image;
         if(my_rank == 0) {
-            image = imread(imageFile);
+            image = imread(imageFile.path().u8string(), IMREAD_GRAYSCALE);
             std::cout << "Channels: " << image.channels() << std::endl;
             size_t imageSize = image.step[0] * image.rows;
             recvBuffer = (unsigned char *) malloc(imageSize * sizeof(unsigned char));
@@ -69,7 +60,7 @@ int main(int argc, char **argv)
             displs = (int*)malloc(comm_sz * sizeof(int));
             displs[0] = 0;
 
-            int * sectionSizePerThread = (int*)malloc(comm_sz * sizeof(int));
+            sectionSizePerThread = (int*)malloc(comm_sz * sizeof(int));
             for(int i = 0; i < comm_sz; ++i) {
                 sectionSizePerThread[i] = (i < remainder) ? sectionSize + 1 : sectionSize;
                 displs[i] = (i <=remainder) ? (sectionSize+1)*i : (i*sectionSize) + remainder;
@@ -80,7 +71,7 @@ int main(int argc, char **argv)
             sendBuffer = image.data;
         }
 
-        MPI_Bcast(&sectionSize, 1, SIZE_MAX, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&sectionSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
         // init buffer for image buffer
         unsigned char *sectionBuffer = (unsigned char *) malloc(sectionSize * sizeof(unsigned char));
         // distribute image data across the world
@@ -137,8 +128,8 @@ int main(int argc, char **argv)
 
             for (int centroid_index = 0; centroid_index < centroidCount; centroid_index++)
             {
-                MPI_Reduce(localCentroidSum[centroid_index], globalCentroidSum[centroid_index], 1, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-                MPI_Reduce(localCentroidCounter[centroid_index], globalCentroidCounter[centroid_index], 1, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+                MPI_Reduce(&localCentroidSum[centroid_index], &globalCentroidSum[centroid_index], 1, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+                MPI_Reduce(&localCentroidCounter[centroid_index], &globalCentroidCounter[centroid_index], 1, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
             }
             // Step 3: after all pixels are added, calculate new centroid
             for (int centroid_index = 0; centroid_index < centroidCount; centroid_index++)
@@ -182,7 +173,7 @@ int main(int argc, char **argv)
             }
 
         // Step 6: process 0 retrieves all
-        int MPI_Gatherv(sectionBuffer, sectionSizePerThread, MPI_UNSIGNED_CHAR, recvBuffer, sectionSizePerThread, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+        MPI_Gatherv(sectionBuffer, sectionSizePerThread, MPI_UNSIGNED_CHAR, recvBuffer, sectionSizePerThread, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
         if (my_rank == 0)
         {
@@ -197,6 +188,9 @@ int main(int argc, char **argv)
             imwrite(fileName, outputMatrix);
         }
         MPI_Barrier(MPI_COMM_WORLD);
+
+
+
     }
     MPI_Finalize();
     return 0;
@@ -205,73 +199,6 @@ int main(int argc, char **argv)
 int brightness_distance(const int &l1, const int &l2)
 {
     return (l2 - l1) < 0 ? -1 * (l2 - l1) : (l2 - l1);
-}
-
-Mat kMeans(const Mat &image, const int &clustersCount, const int &iterations, int threadCount)
-{
-    // 1. Define random centroids for k clusters
-    long long int centroidSum[clustersCount];
-    int centroids[clustersCount], centroidCount[clustersCount];
-    for (int i = 0; i < clustersCount; ++i)
-    {
-        centroids[i] = (int)(rand() % 256);
-        centroidSum[i] = 0ll;
-        centroidCount[i] = 0;
-    }
-
-    // 2. Assign data to closest centroid
-    Mat centroidAssigned = image.clone();
-    int lowestDistance, closestCentroid, c;
-    int colorScale = 256 / (clustersCount);
-    long int y, x;
-    // For each iteration of the k-means alg
-    for (int i = 0; i < iterations; ++i)
-    {
-// For each pixel in image
-#pragma omp parallel for num_threads(threadCount) default(none) shared(image, centroidAssigned, colorScale, centroids, centroidSum, centroidCount, clustersCount) private(y, x, c, closestCentroid, lowestDistance)
-        for (y = 0; y < image.rows; ++y)
-        {
-            if (omp_get_thread_num() > 0)
-                printf("Thread %d reporting\n", omp_get_thread_num());
-            for (x = 0; x < image.cols; ++x)
-            {
-                // option for centroids to ignore all low value/black pixels
-                if ((int)image.at<unsigned char>(y, x) < 24)
-                {
-                    // continue;
-                }
-                // For each centroid in existence
-                closestCentroid = 0;
-                lowestDistance = distance((int)image.at<unsigned char>(y, x), centroids[0]);
-                for (c = 1; c < clustersCount; ++c)
-                {
-                    int space = distance((int)image.at<unsigned char>(y, x), centroids[c]);
-                    if (space < lowestDistance)
-                    {
-                        closestCentroid = c;
-                        lowestDistance = space;
-                    }
-                }
-                // Now that centroids are found, replace the pixels with the color of the centroid
-                centroidAssigned.at<unsigned char>(y, x) = closestCentroid * colorScale;
-                centroidSum[closestCentroid] += (long long int)image.at<unsigned char>(y, x);
-                centroidCount[closestCentroid] += 1;
-            }
-        }
-        // 3. Assign centroid to the average of each grouped data
-        for (int c = 0; c < clustersCount; ++c)
-        {
-            if (centroidCount[c] == 0)
-            {
-                // In event centroid is not counted
-                fprintf(stderr, "Centroid %d did not gain any points!\n", c);
-                continue;
-            }
-            centroids[c] = (long long int)(centroidSum[c] / (long long int)centroidCount[c]);
-        }
-    }
-    // 4. perform 2 and 3 i amount of times
-    return centroidAssigned;
 }
 
 Mat sobel(const Mat &gray_img, int threshold)
