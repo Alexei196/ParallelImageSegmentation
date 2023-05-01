@@ -42,24 +42,22 @@ int main(int argc, char **argv)
         int centroidCount = 3, iterations = 7;
         int *centroids;
         int imageCount;
-        int * displs;
+        int * displs = (int*)malloc(comm_sz * sizeof(int));
         int sectionSize;
-        int * sectionSizePerThread;
+        int * sectionSizePerThread = (int*)malloc(comm_sz * sizeof(int));
+        long long int imageSize;
         Mat image;
         if(my_rank == 0) {
             image = imread(imageFile.path().u8string(), IMREAD_GRAYSCALE);
-            size_t imageSize = image.step[0] * image.rows;
+            imageSize = image.step[0] * image.rows;
             std::cout << "malloc 1 image size is " << imageSize << std::endl;
-            recvBuffer = (unsigned char *) malloc((imageSize) * sizeof(unsigned char));
+            
             sectionSize = imageSize / comm_sz; // Broadcast this
             size_t remainder = imageSize - (sectionSize * comm_sz);
             imageCount++;
             // Displacements for MPI_Gatherv at the end
-            std::cout << "malloc 2\n";
-            displs = (int*)malloc(comm_sz * sizeof(int));
             displs[0] = 0;
             std::cout << "malloc 3\n";
-            sectionSizePerThread = (int*)malloc(comm_sz * sizeof(int));
             std::cout << "Remainder : " << remainder << std::endl;
             for(int i = 0; i < comm_sz; ++i) {
                 sectionSizePerThread[i] = (i < remainder) ? sectionSize + 1 : sectionSize;
@@ -72,7 +70,11 @@ int main(int argc, char **argv)
             std::cout << "end malloc\n";
         }
 
+        MPI_Bcast(&imageSize, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(&sectionSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+        recvBuffer = (unsigned char *) malloc((imageSize) * sizeof(unsigned char));
+
         // init buffer for image buffer
         std::cout << "whoa buddy size of " << sectionSize << std::endl;
         unsigned char *sectionBuffer = (unsigned char *) malloc((sectionSize+1) * sizeof(unsigned char));
