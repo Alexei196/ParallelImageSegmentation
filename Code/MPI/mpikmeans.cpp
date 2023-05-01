@@ -19,6 +19,7 @@ int main(int argc, char **argv)
 {
     int comm_sz, my_rank;
     const fs::path imagesFolder{argv[1]};
+    std:string outputFolderPath;
     MPI_Init(NULL, NULL);
     MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
@@ -31,12 +32,13 @@ int main(int argc, char **argv)
             MPI_Abort(MPI_COMM_WORLD, 1);
             return 1;
         }
+        outputFolderPath = imagesFolder.filename().u8string() + "_KMeans_Images";
+        fs::create_directory(outputFolderPath);
     }
     MPI_Barrier(MPI_COMM_WORLD);
     // foreach loop to look at each image
     for (auto const &imageFile : fs::directory_iterator{imagesFolder})
     {
-
         unsigned char * recvBuffer;
         unsigned char * sendBuffer;
         int centroidCount = 3, iterations = 7;
@@ -50,19 +52,15 @@ int main(int argc, char **argv)
         if(my_rank == 0) {
             image = imread(imageFile.path().u8string(), IMREAD_GRAYSCALE);
             imageSize = image.step[0] * image.rows;
-            std::cout << "malloc 1 image size is " << imageSize << std::endl;
             
             sectionSize = imageSize / comm_sz; // Broadcast this
             size_t remainder = imageSize - (sectionSize * comm_sz);
             imageCount++;
             // Displacements for MPI_Gatherv at the end
             displs[0] = 0;
-            std::cout << "malloc 3\n";
-            std::cout << "Remainder : " << remainder << std::endl;
             for(int i = 0; i < comm_sz; ++i) {
                 sectionSizePerThread[i] = (i < remainder) ? sectionSize + 1 : sectionSize;
                 displs[i] = (i <=remainder) ? (sectionSize+1)*i : (i*sectionSize) + remainder;
-                std::cout << sectionSizePerThread[i] << ", " << displs[i] << "\n";
             }
 
             // fill this buffer with image pixels
@@ -75,13 +73,11 @@ int main(int argc, char **argv)
         recvBuffer = (unsigned char *) malloc((imageSize) * sizeof(unsigned char));
 
         // init buffer for image buffer
-        std::cout << "whoa buddy size of " << sectionSize << std::endl;
         unsigned char *sectionBuffer = new unsigned char[imageSize];
         // distribute image data across the world
 
         MPI_Barrier(MPI_COMM_WORLD);       
-        MPI_Scatterv(sendBuffer, sectionSizePerThread, displs, MPI_UNSIGNED_CHAR, sectionBuffer, imageSize, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
-        std::cout << "malloc 9000\n";   
+        MPI_Scatterv(sendBuffer, sectionSizePerThread, displs, MPI_UNSIGNED_CHAR, sectionBuffer, imageSize, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);  
         MPI_Barrier(MPI_COMM_WORLD);
         centroids = (int *)malloc(centroidCount * sizeof(int));
         if (my_rank == 0)
@@ -106,11 +102,9 @@ int main(int argc, char **argv)
                 localCentroidCounter[i] = 0;
             }
             // broadcast centroids
-            std::cout << "centroid Bcast\n";
             MPI_Bcast(centroids, centroidCount, MPI_INT, 0, MPI_COMM_WORLD);
             // for each pixel in buffer
             // #pragma omp parallel for num_threads(threadCount)
-            std::cout << "local centroid malloc\n";
             
             for (size_t index = 0; index < sectionSize; ++index)
             {
@@ -138,19 +132,15 @@ int main(int argc, char **argv)
                 localCentroidSum[closest_centroid] += current_pixel;
                 localCentroidCounter[closest_centroid] = localCentroidCounter[closest_centroid] + 1;
             }
-            std::cout << "reduction :\n";
             for (int centroid_index = 0; centroid_index < centroidCount; centroid_index++)
             {
                 MPI_Reduce(&localCentroidSum[centroid_index], &globalCentroidSum[centroid_index], 1, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
                 MPI_Reduce(&localCentroidCounter[centroid_index], &globalCentroidCounter[centroid_index], 1, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
             }
-            MPI_Barrier(MPI_COMM_WORLD);
-            std::cout << "new centroids\n";
             // Step 3: after all pixels are added, calculate new centroid
             if(my_rank == 0) {
                 for (int centroid_index = 0; centroid_index < centroidCount; centroid_index++)
                 {
-                    std::cout << "Centroid : " << centroids[centroid_index] << ", GLobalSUm : " << globalCentroidSum[centroid_index] << ", Counter : " << globalCentroidCounter[centroid_index] << std::endl;
                     int new_centroid = globalCentroidSum[centroid_index] / globalCentroidCounter[centroid_index];
                     centroids[centroid_index] = new_centroid;
                 } 
@@ -191,9 +181,9 @@ int main(int argc, char **argv)
             }
 
         // Step 6: process 0 retrieves all
-        MPI_Barrier(MPI_COMM_WORLD);
+
         MPI_Gatherv(sectionBuffer, sectionSize, MPI_UNSIGNED_CHAR, sendBuffer, sectionSizePerThread, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
-        MPI_Barrier(MPI_COMM_WORLD);
+
         if (my_rank == 0)
         {
             // Make Mat same size as original image
@@ -202,14 +192,13 @@ int main(int argc, char **argv)
             cv::Mat outputMatrix(image.rows, image.cols, image.type(), sendBuffer);
 
             // and output the image as jpg.
-            char fileName[64];
-            sprintf(fileName, "brainRegions%d.jpg", imageCount++);
-            imwrite(fileName, outputMatrix);
+            std::string outputFilePath = outputFolderPath + "/" + imageFile.path().filename().u8string(); 
+            if(!imwrite(outputFilePath, outputMatrix)) {
+                std::cerr << "error writing to \"" << outputFilePath << "\"\n";
+                continue;
+            }
         }
         MPI_Barrier(MPI_COMM_WORLD);
-
-
-
     }
     MPI_Finalize();
     return 0;
