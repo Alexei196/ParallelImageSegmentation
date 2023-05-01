@@ -18,15 +18,14 @@ int brightness_distance(const int &l1, const int &l2);
 int main(int argc, char **argv)
 {
     int comm_sz, my_rank;
-    fs::path folderPath;
+    const fs::path imagesFolder{argv[1]};
     MPI_Init(NULL, NULL);
     MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
     // Read folder
     if (my_rank == 0)
     {
-        folderPath = argv[1];
-        if (!fs::exists(folderPath))
+        if (!fs::exists(imagesFolder))
         {
             fprintf(stderr, "Specified path does not exist!\n");
             MPI_Abort(MPI_COMM_WORLD, 1);
@@ -35,7 +34,7 @@ int main(int argc, char **argv)
     }
     MPI_Barrier(MPI_COMM_WORLD);
     // foreach loop to look at each image
-    for (auto const &imageFile : fs::directory_iterator{folderPath})
+    for (auto const &imageFile : fs::directory_iterator{imagesFolder})
     {
 
         unsigned char * recvBuffer;
@@ -51,14 +50,16 @@ int main(int argc, char **argv)
             image = imread(imageFile.path().u8string(), IMREAD_GRAYSCALE);
             std::cout << "Channels: " << image.channels() << std::endl;
             size_t imageSize = image.step[0] * image.rows;
-            recvBuffer = (unsigned char *) malloc(imageSize * sizeof(unsigned char));
+            std::cout << "malloc 1\n";
+            recvBuffer = (unsigned char *) malloc((imageSize/4) * sizeof(unsigned char));
             sectionSize = imageSize / comm_sz; // Broadcast this
             size_t remainder = imageSize - (sectionSize * comm_sz);
             imageCount++;
             // Displacements for MPI_Gatherv at the end
+            std::cout << "malloc 2\n";
             displs = (int*)malloc(comm_sz * sizeof(int));
             displs[0] = 0;
-
+            std::cout << "malloc 3\n";
             sectionSizePerThread = (int*)malloc(comm_sz * sizeof(int));
             for(int i = 0; i < comm_sz; ++i) {
                 sectionSizePerThread[i] = (i < remainder) ? sectionSize + 1 : sectionSize;
@@ -66,18 +67,21 @@ int main(int argc, char **argv)
             }
 
             // fill this buffer with image pixels
-            sendBuffer = (unsigned char *) malloc(imageSize * sizeof(unsigned char));
             sendBuffer = image.data;
+            std::cout << "end malloc\n";
         }
 
         MPI_Bcast(&sectionSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
         // init buffer for image buffer
+        std::cout << "whoa buddy size of " << sectionSize << std::endl;
         unsigned char *sectionBuffer = (unsigned char *) malloc(sectionSize * sizeof(unsigned char));
         // distribute image data across the world
-        MPI_Scatterv(sendBuffer, sectionSizePerThread, displs, MPI_INT, sectionBuffer, sectionSizePerThread, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+
+        MPI_Scatterv(sendBuffer, sectionSizePerThread, displs, MPI_INT, sectionBuffer, sectionSize, MPI_INT, 0, MPI_COMM_WORLD);
 
         if (my_rank == 0)
         {
+            std::cout << "malloc 9000\n";
             centroids = (int *)malloc(centroidCount * sizeof(int));
             for (int i = 0; i < centroidCount; ++i)
             {
@@ -88,6 +92,7 @@ int main(int argc, char **argv)
         // For each iteration
         for (int iter = 0; iter < iterations; ++iter)
         {
+            std::cout << "global centroid malloc\n";
             long long int * globalCentroidSum = (long long int *)malloc(centroidCount * sizeof(long long int));
             long long int * globalCentroidCounter = (long long int *)malloc(centroidCount * sizeof(long long int));
 
@@ -95,6 +100,7 @@ int main(int argc, char **argv)
             MPI_Bcast(centroids, centroidCount, MPI_INT, 0, MPI_COMM_WORLD);
             // for each pixel in buffer
             // #pragma omp parallel for num_threads(threadCount)
+            std::cout << "local centroid malloc\n";
             long long int * localCentroidSum = (long long int *)malloc(centroidCount * sizeof(long long int));
             long long int * localCentroidCounter = (long long int *)malloc(centroidCount * sizeof(long long int));
             for (size_t index = 0; index < sectionSize; ++index)

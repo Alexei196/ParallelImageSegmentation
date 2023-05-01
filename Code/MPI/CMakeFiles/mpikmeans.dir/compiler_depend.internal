@@ -426,4 +426,7 @@ CMakeFiles/mpikmeans.dir/mpikmeans.cpp.o
  /usr/local/include/opencv4/opencv2/video.hpp
  /usr/local/include/opencv4/opencv2/video/tracking.hpp
  /usr/local/include/opencv4/opencv2/video/background_segm.hpp
+ /usr/include/x86_64-linux-gnu/sys/resource.h
+ /usr/include/x86_64-linux-gnu/bits/resource.h
+ /usr/include/x86_64-linux-gnu/bits/types/struct_rusage.h
 
