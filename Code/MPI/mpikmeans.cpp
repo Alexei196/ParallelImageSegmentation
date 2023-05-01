@@ -74,7 +74,7 @@ int main(int argc, char **argv)
         // init buffer for image buffer
         unsigned char *sectionBuffer = (unsigned char *) malloc(sectionSize * sizeof(unsigned char));
         // distribute image data across the world
-        MPI_Scatterv(sendBuffer, sectionSizePerThread, MPI_INT, sectionBuffer, sectionSizePerThread, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+        MPI_Scatterv(sendBuffer, sectionSizePerThread, displs, MPI_INT, sectionBuffer, sectionSizePerThread, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
         if (my_rank == 0)
         {
