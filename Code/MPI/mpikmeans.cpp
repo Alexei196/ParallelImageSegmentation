@@ -74,7 +74,7 @@ int main(int argc, char **argv)
         // init buffer for image buffer
         unsigned char *sectionBuffer = (unsigned char *) malloc(sectionSize * sizeof(unsigned char));
         // distribute image data across the world
-        MPI_Scatterv(sendBuffer, sectionSizePerThread, MPI_UNSIGNED_CHAR, sectionBuffer, sectionSizePerThread, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+        MPI_Scatterv(sendBuffer, sectionSizePerThread, MPI_INT, sectionBuffer, sectionSizePerThread, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
         if (my_rank == 0)
         {
@@ -172,7 +172,8 @@ int main(int argc, char **argv)
             }
 
         // Step 6: process 0 retrieves all
-        MPI_Gatherv(sectionBuffer, sectionSizePerThread, MPI_UNSIGNED_CHAR, recvBuffer, sectionSizePerThread, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+        int current_receive_size = sectionSizePerThread[my_rank];
+        MPI_Gatherv(sectionBuffer, current_receive_size, MPI_UNSIGNED_CHAR, recvBuffer, sectionSizePerThread, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
         if (my_rank == 0)
         {
