@@ -1,0 +1,3 @@
+/home/andrew/Documents/ParallelImageSegmentation/Code/MPI/CMakeFiles/mpikmeans.dir
+/home/andrew/Documents/ParallelImageSegmentation/Code/MPI/CMakeFiles/edit_cache.dir
+/home/andrew/Documents/ParallelImageSegmentation/Code/MPI/CMakeFiles/rebuild_cache.dir
