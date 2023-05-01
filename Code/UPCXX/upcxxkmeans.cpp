@@ -3,6 +3,8 @@
 #include<string>
 #include<upcxx/upcxx.hpp>
 #include<opencv2/opencv.hpp>
+#include "sobel.hpp"
+#include "overlap.hpp"
 
 #define IS_MASTER_PROCESS my_rank == 0
 
