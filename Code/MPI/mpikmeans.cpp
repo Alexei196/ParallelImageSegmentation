@@ -43,7 +43,7 @@ int main(int argc, char **argv)
     {
         unsigned char * recvBuffer;
         unsigned char * sendBuffer;
-        int centroidCount = 4, iterations = 7;
+        int centroidCount = 3, iterations = 7;
         int *centroids;
         int imageCount;
         int * displs = (int*)malloc(comm_sz * sizeof(int));
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
                 // Step 1: get closest centroid of current pixel
                 int current_pixel = *pixel;
                 int closest_centroid = 0; // first centroid default is min
-                if(current_pixel == 0) {continue;}
+                if(current_pixel < 12) {current_pixel = 0;}
                 int min_brightness_diff = INT_MAX;
                 // Finds the closest centroid
                 for (int centroid_index = 0; centroid_index < centroidCount; centroid_index++)
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
                 int current_pixel = *pixel;
                 int closest_centroid = centroids[0]; // first centroid default is min
                 int closest_centroid_idx = 0;
-                if(current_pixel == 0) {continue;}
+                if(current_pixel < 12) {current_pixel = 0;}
                 int min_brightness_diff = INT_MAX;
                 // Finds the closest centroid
                 for (int centroid_index = 0; centroid_index < centroidCount; centroid_index++)
