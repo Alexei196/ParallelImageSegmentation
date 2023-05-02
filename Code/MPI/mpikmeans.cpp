@@ -190,9 +190,6 @@ int main(int argc, char **argv)
         if (my_rank == 0)
         {
             // Make Mat same size as original image
-            //cv::Size size = image.size(); // get original size of image
-            //cv::Mat outputMatrix(size, image.type()); // get new mat
-            //cv::Mat outputMatrix(image.rows, image.cols, image.type(), sendBuffer);
             Mat oldImage = imread(imageFile.path().u8string(), IMREAD_GRAYSCALE);
 
             int threshold = 60;
