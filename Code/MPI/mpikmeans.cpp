@@ -23,6 +23,10 @@ int main(int argc, char **argv)
     int local_r, global_r;
     int comm_sz, my_rank;
     double local_start, local_finish, local_elapsed, elapsed;
+    if(argc < 2) {
+        MPI_Abort(MPI_COMM_WORLD, 1);
+        return 1;
+    }
     const fs::path imagesFolder{argv[1]};
     std:string outputFolderPath;
     MPI_Init(NULL, NULL);
