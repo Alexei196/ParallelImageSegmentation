@@ -263,17 +263,19 @@ Mat sobel(const Mat &gray_img, int threshold)
     return sobel_img;
 }
 
-Mat overlap(const Mat &sobel_img, const Mat &orig_image)
-{
+Mat overlap(const Mat &sobel_img, const Mat &orig_image) {
 
     // Convert sobel image type to same type as original image to run bitwise_or
-    cv::Mat simg_16(sobel_img.rows, sobel_img.cols, CV_8UC3);
-    int from_to[] = {0, 0, 0, 1, 0, 2};
-    cv::mixChannels(&sobel_img, 1, &simg_16, 1, from_to, 3);
-    cv::Mat sobel_updated;
-    simg_16.convertTo(sobel_updated, CV_16U);
-
-    cv::Mat overlappedImage;
-    cv::bitwise_or(simg_16, orig_image, overlappedImage);
-    return overlappedImage;
+    cv::Mat outputMatrix(sobel_img.rows, sobel_img.cols, CV_8UC1);
+    #pragma omp parallel for collapse(2)
+    for (int row = 0; row < sobel_img.rows; row++)
+        for (int col = 0; col < sobel_img.cols; col++)
+        {
+            if(sobel_img.at<unsigned char>(row, col) == 255) {
+                outputMatrix.at<unsigned char>(row, col) = 255;
+            } else {
+                outputMatrix.at<unsigned char>(row, col) = orig_image.at<unsigned char>(row, col);
+            }
+        }
+    return outputMatrix;
 }
