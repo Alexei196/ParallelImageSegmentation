@@ -37,10 +37,10 @@ int main(int argc, char** argv){
 
         Mat kimage = kMeans(image, 3,5, 2);
         Mat simage = sobel(kimage, 60);
-        //Mat overlappedImage = overlap(simage, image);
+        Mat overlappedImage = overlap(simage, image);
         //output store image result in folder
         std::string outputFilePath = outputFolderPath + "/" + imagePath.filename().u8string(); 
-        if(!imwrite(outputFilePath, simage)) {
+        if(!imwrite(outputFilePath, overlappedImage)) {
             std::cerr << "error writing to \"" << outputFilePath << "\"\n";
             continue;
         }
