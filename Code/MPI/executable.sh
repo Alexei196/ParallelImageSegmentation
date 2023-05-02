@@ -1,23 +1,25 @@
 #!/bin/bash
 # If permission errors: chmod u+x
 
-# TODO;
-# run mpikmeans timing >> exported to a file
+# To run: ./executable.sh
+
+# This script will run timing on the mpikmeans.cpp and export the stdout to files
+
+# Get path to directory
+echo 'type in directory path to images'
+read dir_path
+
 # Get execution time of the serial program
-mpirun -n 1 ./mpikmeans > mpikmeansSerial.txt
+mpiexec -n 1 ./mpikmeans $dir_path > mpikmeansSerial.txt
 echo "See mpikmeansSerial.txt for the execution time of the serial program"
+
 # Get execution time for the parallel program(s)
 processArray=(1 2 4 8 16 32)
 for i in "${processArray[@]}"
 do
-    mpirun -n $i ./mpikmeans
+    mpiexec --oversubscribe -n $i ./mpikmeans $dir_path
 done > mpikmeansParallel.txt
 echo "See mpikmeansParallel.txt for the execution time of the parallel MPI program"
-
-# figure out memory usage for mpi
-
-# how to time in upc++
-# figure out memory usage for upc++
 
 
 
