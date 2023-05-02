@@ -19,7 +19,10 @@ Mat overlap(Mat &sobel_img, Mat &orig_image);
 
 int main(int argc, char **argv)
 {
+    struct rusage local_r_usage; // for memory analysis later
+    struct rusage global_r_usage;
     int comm_sz, my_rank;
+    double local_start, local_finish, local_elapsed, elapsed;
     const fs::path imagesFolder{argv[1]};
     std:string outputFolderPath;
     MPI_Init(NULL, NULL);
@@ -38,6 +41,7 @@ int main(int argc, char **argv)
         fs::create_directory(outputFolderPath);
     }
     MPI_Barrier(MPI_COMM_WORLD);
+    local_start = MPI_Wtime();
     // foreach loop to look at each image
     for (auto const &imageFile : fs::directory_iterator{imagesFolder})
     {
@@ -181,23 +185,27 @@ int main(int argc, char **argv)
             }
 
         // Step 6: process 0 retrieves all
-
         MPI_Gatherv(sectionBuffer, sectionSize, MPI_UNSIGNED_CHAR, sendBuffer, sectionSizePerThread, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+
+        // Timing and memory usage at the end
+        local_finish = MPI_Wtime();
+        local_elapsed = local_finish - local_start;
+        getrusage(RUSAGE_SELF, &local_r_usage);
 
         if (my_rank == 0)
         {
             // Make Mat same size as original image
-            //cv::Size size = image.size(); // get original size of image
-            //cv::Mat outputMatrix(size, image.type()); // get new mat
-            cv::Mat outputMatrix(image.rows, image.cols, image.type(), sendBuffer);
+            Mat oldImage = imread(imageFile.path().u8string(), IMREAD_GRAYSCALE);
 
-            printf("before sobel is called\n");
             int threshold = 60;
-            cv::Mat sobelOutput = sobel(outputMatrix, threshold);
-            printf("before overlap is called\n");
+            cv::Mat sobelOutput = sobel(image, threshold);
 
-            cv::Mat overlapOutput = overlap(sobelOutput, image);
-            printf("after overlap is called");
+            cv::Mat overlapOutput = overlap(sobelOutput, oldImage);
+
+            MPI_Reduce(&local_r_usage, &global_r_usage, 1, MPI_DOUBLE, MPI_MAX, 0 , MPI_COMM_WORLD);
+            MPI_Reduce(&local_elapsed, &elapsed, 1, MPI_DOUBLE, MPI_MAX, 0 , MPI_COMM_WORLD);
+            printf("Elapsed time: %e\n", elapsed);
+            printf("Memory usage %ld KB\n", global_r_usage.ru_maxrss);
 
             // and output the image as jpg.
             std::string outputFilePath = outputFolderPath + "/" + imageFile.path().filename().u8string(); 
@@ -268,11 +276,12 @@ Mat overlap(Mat &sobel_img, Mat &orig_image) {
     for (int row = 0; row < sobel_img.rows; row++)
         for (int col = 0; col < sobel_img.cols; col++)
         {
-            if(sobel_img.at<unsigned char>(row, col) == 255){
+            if(sobel_img.at<unsigned char>(row, col) > 0){       
                 copy.at<Vec3b>(row, col).val[0] = (unsigned char) 0;
                 copy.at<Vec3b>(row, col).val[1] = (unsigned char) 0;
                 copy.at<Vec3b>(row, col).val[2] = (unsigned char) 255;
             }
         }
+        
     return copy;
 }
