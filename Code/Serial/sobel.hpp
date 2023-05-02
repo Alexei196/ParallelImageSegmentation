@@ -29,7 +29,7 @@ Mat sobel(const Mat &gray_img, int threshold) {
             if (pixel <= threshold)
                 pixel = 0;
             else 
-                pixel = 128;
+                pixel = 255;
             sobel_img.at<unsigned char>(row,col) = pixel;
              
         }

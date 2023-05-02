@@ -4,16 +4,19 @@
 using namespace cv;
 using namespace std;
 
-Mat overlap(const Mat &sobel_img, const Mat& orig_image) {
-
-    // Convert sobel image type to same type as original image to run bitwise_or
-    cv::Mat simg_16(sobel_img.rows, sobel_img.cols, CV_8UC3);
-    int from_to[] = {0, 0, 0, 1, 0, 2};
-    cv::mixChannels(&sobel_img, 1, &simg_16, 1, from_to, 3);
-    cv::Mat sobel_updated;
-    simg_16.convertTo(sobel_updated, CV_16U);
-    
-    cv::Mat overlappedImage;
-    cv::bitwise_or(simg_16, orig_image, overlappedImage);
-    return overlappedImage;
+Mat overlap(Mat &sobel_img, Mat &orig_image) {
+    Mat copy;
+    cvtColor(orig_image, copy, COLOR_GRAY2RGB);
+    #pragma omp parallel for collapse(2)
+    for (int row = 0; row < sobel_img.rows; row++)
+        for (int col = 0; col < sobel_img.cols; col++)
+        {
+            if(sobel_img.at<unsigned char>(row, col) > 0){       
+                copy.at<Vec3b>(row, col).val[0] = (unsigned char) 0;
+                copy.at<Vec3b>(row, col).val[1] = (unsigned char) 0;
+                copy.at<Vec3b>(row, col).val[2] = (unsigned char) 255;
+            }
+        }
+        
+    return copy;
 }
