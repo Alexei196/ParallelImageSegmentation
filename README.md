@@ -24,10 +24,13 @@ CS605 Image Segmentation
 To compile, you will need to look inside your `opencv\build\bin folder`. You will see several `.dll` files you will need to link to the compilation. Here is an example compilation line:
 `g++ -o coloredRegion coloredRegion.cpp -IC:\opencv\build\include -LC:\opencv\build\lib -llibopencv_calib3d470 -llibopencv_core470 -llibopencv_dnn470 -llibopencv_features2d470 -llibopencv_flann470 -llibopencv_gapi470 -llibopencv_highgui470 -llibopencv_imgcodecs470 -llibopencv_imgproc470 -llibopencv_ml470 -llibopencv_objdetect470 -llibopencv_photo470 -llibopencv_stitching470 -llibopencv_videoio470`
 
-### Run the program: TODO replace with name of executable
-`./canny.exe`
-`./kmeans.exe`
-`./coloredRegion.exe`
+### Run the program: 
+Each one of the individual exes use the following syntax. Input DIR refers to the directory where you hold your images, the directory we used for the tests is JPG/Input_Images5. 
+`./build/executables/mpikmeans.exe <DIR>`
+`./build/executables/mpikmeans.exe <DIR>`
+`./build/executables/mpikmeans.exe <DIR>`
+You can also use our test file : 
+`./executable.sh`
 
 ### Cmake instructions
 To start using Cmake you will have to call the 2 instructions to create the CMake build. Once that is done, you can generate the executables using the "cmake --build build" command. 
