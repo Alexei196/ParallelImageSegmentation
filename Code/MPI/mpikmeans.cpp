@@ -20,7 +20,7 @@ Mat overlap(Mat &sobel_img, Mat &orig_image);
 int main(int argc, char **argv)
 {
     struct rusage local_r_usage; // for memory analysis later
-    struct rusage global_r_usage;
+    int local_r, global_r;
     int comm_sz, my_rank;
     double local_start, local_finish, local_elapsed, elapsed;
     const fs::path imagesFolder{argv[1]};
@@ -190,8 +190,8 @@ int main(int argc, char **argv)
         local_finish = MPI_Wtime();
         local_elapsed = local_finish - local_start;
         getrusage(RUSAGE_SELF, &local_r_usage);
-
-        MPI_Reduce(&local_r_usage, &global_r_usage, 1, MPI_DOUBLE, MPI_MAX, 0 , MPI_COMM_WORLD);
+        local_r = local_r_usage.ru_maxrss;
+        MPI_Reduce(&local_r, &global_r, 1, MPI_INT, MPI_MAX, 0 , MPI_COMM_WORLD);
         MPI_Reduce(&local_elapsed, &elapsed, 1, MPI_DOUBLE, MPI_MAX, 0 , MPI_COMM_WORLD);
 
         if (my_rank == 0)
@@ -205,7 +205,7 @@ int main(int argc, char **argv)
             cv::Mat overlapOutput = overlap(sobelOutput, oldImage);
 
             printf("Elapsed time: %e\n", elapsed);
-            printf("Memory usage %ld KB\n", global_r_usage.ru_maxrss);
+            printf("Memory usage %d KB\n", global_r);
 
             // and output the image as jpg.
             std::string outputFilePath = outputFolderPath + "/" + imageFile.path().filename().u8string(); 
