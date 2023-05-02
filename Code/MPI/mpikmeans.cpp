@@ -14,6 +14,7 @@ using namespace cv;
 using namespace std;
 
 int brightness_distance(const int &l1, const int &l2);
+Mat sobel(const Mat &gray_img, int threshold);
 
 int main(int argc, char **argv)
 {
@@ -191,12 +192,18 @@ int main(int argc, char **argv)
             //cv::Mat outputMatrix(size, image.type()); // get new mat
             cv::Mat outputMatrix(image.rows, image.cols, image.type(), sendBuffer);
 
+            int threshold = 60;
+            cv::Mat sobelOutput = sobel(outputMatrix, threshold);
+
+            cv::Mat overlapOutput = overlap(sobelOutput, image);
+
             // and output the image as jpg.
             std::string outputFilePath = outputFolderPath + "/" + imageFile.path().filename().u8string(); 
-            if(!imwrite(outputFilePath, outputMatrix)) {
+            if(!imwrite(outputFilePath, overlapOutput)) { // originally outputMatrix in 2nd arg
                 std::cerr << "error writing to \"" << outputFilePath << "\"\n";
                 continue;
             }
+
         }
         MPI_Barrier(MPI_COMM_WORLD);
     }
