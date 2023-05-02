@@ -81,8 +81,7 @@ int main(int argc, char **argv)
         // init buffer for image buffer
         unsigned char *sectionBuffer = new unsigned char[imageSize];
         // distribute image data across the world
-
-        MPI_Barrier(MPI_COMM_WORLD);       
+             
         MPI_Scatterv(sendBuffer, sectionSizePerThread, displs, MPI_UNSIGNED_CHAR, sectionBuffer, imageSize, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);  
         MPI_Barrier(MPI_COMM_WORLD);
         centroids = (int *)malloc(centroidCount * sizeof(int));
@@ -192,6 +191,9 @@ int main(int argc, char **argv)
         local_elapsed = local_finish - local_start;
         getrusage(RUSAGE_SELF, &local_r_usage);
 
+        MPI_Reduce(&local_r_usage, &global_r_usage, 1, MPI_DOUBLE, MPI_MAX, 0 , MPI_COMM_WORLD);
+        MPI_Reduce(&local_elapsed, &elapsed, 1, MPI_DOUBLE, MPI_MAX, 0 , MPI_COMM_WORLD);
+
         if (my_rank == 0)
         {
             // Make Mat same size as original image
@@ -202,8 +204,6 @@ int main(int argc, char **argv)
 
             cv::Mat overlapOutput = overlap(sobelOutput, oldImage);
 
-            MPI_Reduce(&local_r_usage, &global_r_usage, 1, MPI_DOUBLE, MPI_MAX, 0 , MPI_COMM_WORLD);
-            MPI_Reduce(&local_elapsed, &elapsed, 1, MPI_DOUBLE, MPI_MAX, 0 , MPI_COMM_WORLD);
             printf("Elapsed time: %e\n", elapsed);
             printf("Memory usage %ld KB\n", global_r_usage.ru_maxrss);
 
