@@ -28,3 +28,8 @@ To compile, you will need to look inside your `opencv\build\bin folder`. You wil
 `./canny.exe`
 `./kmeans.exe`
 `./coloredRegion.exe`
+
+### Cmake instructions
+To start using Cmake you will have to call the 2 instructions to create the CMake build. Once that is done, you can generate the executables using the "cmake --build build" command. 
+`cmake -S . -B build`
+`cmake --build build`
