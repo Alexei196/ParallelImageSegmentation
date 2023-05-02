@@ -4,18 +4,21 @@
 using namespace cv;
 using namespace std;
  
- //still serial
-Mat sobel(const Mat &gray_img, int threshold) {
+Mat sobel(const Mat &gray_img, int threshold)
+{
     Mat sobel_img(gray_img.rows, gray_img.cols, CV_8UC1);
-    if(threshold < 256) {
-        threshold*= threshold;
+    if (threshold < 256)
+    {
+        threshold *= threshold;
     }
 
+#pragma omp parallel for collapse(2)
     for (int row = 0; row < gray_img.rows; row++)
         for (int col = 0; col < gray_img.cols; col++)
         {
-            if (row >= gray_img.rows - 2 || col >= gray_img.cols - 2){
-                sobel_img.at<unsigned char>(row,col) = 0;
+            if (row >= gray_img.rows - 2 || col >= gray_img.cols - 2)
+            {
+                sobel_img.at<unsigned char>(row, col) = 0;
                 continue;
             }
             Mat G;
@@ -28,10 +31,9 @@ Mat sobel(const Mat &gray_img, int threshold) {
             double pixel = pow(G_x, 2) + pow(G_y, 2);
             if (pixel <= threshold)
                 pixel = 0;
-            else 
+            else
                 pixel = 128;
-            sobel_img.at<unsigned char>(row,col) = pixel;
-             
+            sobel_img.at<unsigned char>(row, col) = pixel;
         }
     return sobel_img;
 }
