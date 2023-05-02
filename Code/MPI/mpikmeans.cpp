@@ -205,7 +205,7 @@ int main(int argc, char **argv)
             cv::Mat overlapOutput = overlap(sobelOutput, oldImage);
 
             printf("Elapsed time: %e\n", elapsed);
-            printf("Memory usage %ld KB\n", global_r);
+            printf("Memory usage %d KB\n", global_r);
 
             // and output the image as jpg.
             std::string outputFilePath = outputFolderPath + "/" + imageFile.path().filename().u8string(); 
