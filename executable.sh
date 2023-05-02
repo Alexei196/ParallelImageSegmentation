@@ -26,8 +26,8 @@ echo "See mpikmeansParallel.txt for the execution time of the parallel MPI progr
 for i in "${processArray[@]}"
 do
     echo $i
-    ~/upcxx/bin/upcxx-run -localhost -n $i ./build/executables/upcxxkmeans $dir_path
+    ~/upcxx/bin/upcxx-run -shared-heap 1024MB -localhost -n $i ./build/executables/upcxxkmeans $dir_path
 done > output/upcxxkmeansParallel.txt
-echo "See mpikmeansParallel.txt for the execution time of the parallel MPI program"
+echo "See upcxxkmeansParallel.txt for the execution time of the parallel MPI program"
 
 

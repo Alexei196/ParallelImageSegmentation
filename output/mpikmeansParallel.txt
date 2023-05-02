@@ -1,66 +1,66 @@
 1
-Elapsed time: 3.161524e-02
-Memory usage 17176 KB
-Elapsed time: 5.015185e-01
-Memory usage 18984 KB
-Elapsed time: 1.233139e+00
-Memory usage 19272 KB
-Elapsed time: 2.388883e+00
-Memory usage 20560 KB
-Elapsed time: 2.663887e+00
-Memory usage 20560 KB
+Elapsed time: 2.687814e-02
+Memory usage 17272 KB
+Elapsed time: 4.947909e-01
+Memory usage 18776 KB
+Elapsed time: 1.194214e+00
+Memory usage 18996 KB
+Elapsed time: 2.321688e+00
+Memory usage 20524 KB
+Elapsed time: 2.588814e+00
+Memory usage 20524 KB
 2
-Elapsed time: 1.573926e-02
-Memory usage 17608 KB
-Elapsed time: 4.933933e-01
-Memory usage 18912 KB
-Elapsed time: 1.222396e+00
-Memory usage 19244 KB
-Elapsed time: 2.445761e+00
-Memory usage 20808 KB
-Elapsed time: 2.721748e+00
-Memory usage 20808 KB
+Elapsed time: 1.551608e-02
+Memory usage 17572 KB
+Elapsed time: 5.019318e-01
+Memory usage 19076 KB
+Elapsed time: 1.242149e+00
+Memory usage 19456 KB
+Elapsed time: 2.485697e+00
+Memory usage 20884 KB
+Elapsed time: 2.767440e+00
+Memory usage 20884 KB
 4
-Elapsed time: 1.793165e-02
-Memory usage 17872 KB
-Elapsed time: 5.679313e-01
-Memory usage 19348 KB
-Elapsed time: 1.385696e+00
-Memory usage 19736 KB
-Elapsed time: 2.773227e+00
-Memory usage 20672 KB
-Elapsed time: 3.102500e+00
-Memory usage 20672 KB
+Elapsed time: 1.357955e-02
+Memory usage 17960 KB
+Elapsed time: 5.939135e-01
+Memory usage 19600 KB
+Elapsed time: 1.484003e+00
+Memory usage 19984 KB
+Elapsed time: 2.913061e+00
+Memory usage 20904 KB
+Elapsed time: 3.263440e+00
+Memory usage 20904 KB
 8
-Elapsed time: 2.858691e-02
-Memory usage 17900 KB
-Elapsed time: 9.038534e-01
-Memory usage 18900 KB
-Elapsed time: 2.264972e+00
-Memory usage 18980 KB
-Elapsed time: 4.381890e+00
-Memory usage 20028 KB
-Elapsed time: 4.838235e+00
-Memory usage 20028 KB
+Elapsed time: 2.521481e-02
+Memory usage 17892 KB
+Elapsed time: 7.941999e-01
+Memory usage 19416 KB
+Elapsed time: 2.012607e+00
+Memory usage 19484 KB
+Elapsed time: 4.038924e+00
+Memory usage 20504 KB
+Elapsed time: 4.497180e+00
+Memory usage 20504 KB
 16
-Elapsed time: 2.511470e-02
-Memory usage 17920 KB
-Elapsed time: 1.496297e+00
-Memory usage 19196 KB
-Elapsed time: 3.483272e+00
-Memory usage 19572 KB
-Elapsed time: 6.951561e+00
-Memory usage 20616 KB
-Elapsed time: 7.771057e+00
-Memory usage 20616 KB
+Elapsed time: 3.911660e-02
+Memory usage 18020 KB
+Elapsed time: 1.395759e+00
+Memory usage 19292 KB
+Elapsed time: 3.409587e+00
+Memory usage 19644 KB
+Elapsed time: 6.879628e+00
+Memory usage 20576 KB
+Elapsed time: 7.656858e+00
+Memory usage 20576 KB
 32
-Elapsed time: 4.482711e-02
-Memory usage 19372 KB
-Elapsed time: 2.451083e+00
-Memory usage 20620 KB
-Elapsed time: 5.828741e+00
-Memory usage 21188 KB
-Elapsed time: 1.181738e+01
-Memory usage 21792 KB
-Elapsed time: 1.318077e+01
-Memory usage 21792 KB
+Elapsed time: 3.312165e-02
+Memory usage 19396 KB
+Elapsed time: 2.310397e+00
+Memory usage 20448 KB
+Elapsed time: 5.650033e+00
+Memory usage 20916 KB
+Elapsed time: 1.155847e+01
+Memory usage 21848 KB
+Elapsed time: 1.294012e+01
+Memory usage 21848 KB

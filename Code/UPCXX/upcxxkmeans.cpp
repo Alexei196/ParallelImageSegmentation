@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
     for (auto const& imageEntry : fs::directory_iterator{imagesFolder}) {
         fs::path imagePath = imageEntry.path();
         Mat image;
-        const int iterations = 20, clustersCount = 4;
+        const int iterations = 7, clustersCount = 4;
         
         //master checks path for errors
         if(IS_MASTER_PROCESS) {
