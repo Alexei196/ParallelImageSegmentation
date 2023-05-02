@@ -509,4 +509,6 @@ CMakeFiles/upcxxKmeans.dir/upcxxkmeans.cpp.o
  /usr/local/include/opencv4/opencv2/video.hpp
  /usr/local/include/opencv4/opencv2/video/tracking.hpp
  /usr/local/include/opencv4/opencv2/video/background_segm.hpp
+ /home/andrew/Documents/ParallelImageSegmentation/Code/UPCXX/sobel.hpp
+ /home/andrew/Documents/ParallelImageSegmentation/Code/UPCXX/overlap.hpp
 
