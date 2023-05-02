@@ -15,6 +15,7 @@ using namespace std;
 
 int brightness_distance(const int &l1, const int &l2);
 Mat sobel(const Mat &gray_img, int threshold);
+Mat overlap(const Mat &sobel_img, const Mat &orig_image);
 
 int main(int argc, char **argv)
 {
