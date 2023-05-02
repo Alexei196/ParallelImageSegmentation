@@ -40,7 +40,7 @@ int main(int argc, char **argv)
         fs::create_directory(outputFolderPath);
     }
     MPI_Barrier(MPI_COMM_WORLD);
-    local_start = MPI_Wtime();
+    double local_start = MPI_Wtime();
     // foreach loop to look at each image
     for (auto const &imageFile : fs::directory_iterator{imagesFolder})
     {
@@ -192,12 +192,13 @@ int main(int argc, char **argv)
             // Make Mat same size as original image
             //cv::Size size = image.size(); // get original size of image
             //cv::Mat outputMatrix(size, image.type()); // get new mat
-            cv::Mat outputMatrix(image.rows, image.cols, image.type(), sendBuffer);
+            //cv::Mat outputMatrix(image.rows, image.cols, image.type(), sendBuffer);
+            Mat oldImage = imread(imageFile.path().u8string(), IMREAD_GRAYSCALE);
 
             int threshold = 60;
-            cv::Mat sobelOutput = sobel(outputMatrix, threshold);
+            cv::Mat sobelOutput = sobel(image, threshold);
 
-            cv::Mat overlapOutput = overlap(sobelOutput, image);
+            cv::Mat overlapOutput = overlap(sobelOutput, oldImage);
 
 
             // and output the image as jpg.
@@ -269,11 +270,12 @@ Mat overlap(Mat &sobel_img, Mat &orig_image) {
     for (int row = 0; row < sobel_img.rows; row++)
         for (int col = 0; col < sobel_img.cols; col++)
         {
-            if(sobel_img.at<unsigned char>(row, col) == 255){
+            if(sobel_img.at<unsigned char>(row, col) > 0){       
                 copy.at<Vec3b>(row, col).val[0] = (unsigned char) 0;
                 copy.at<Vec3b>(row, col).val[1] = (unsigned char) 0;
                 copy.at<Vec3b>(row, col).val[2] = (unsigned char) 255;
             }
         }
+        
     return copy;
 }
