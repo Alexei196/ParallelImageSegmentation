@@ -44,7 +44,9 @@ int main(int argc, char** argv) {
         srand(time(NULL));
     }
     //for each entry in the directory
-    
+    upcxx::global_ptr<unsigned char> globalImage_uchar = nullptr;
+    upcxx::global_ptr<unsigned char> centroids = nullptr;
+    upcxx::global_ptr<size_t> imageSize = nullptr;
     
     upcxx::barrier();
     struct timeval startTime;
@@ -53,10 +55,7 @@ int main(int argc, char** argv) {
     for (auto const& imageEntry : fs::directory_iterator{imagesFolder}) {
         fs::path imagePath = imageEntry.path();
         Mat image;
-        const int iterations = 7, clustersCount = 3;
-        upcxx::global_ptr<unsigned char> globalImage_uchar = nullptr;
-        upcxx::global_ptr<unsigned char> centroids = nullptr;
-        upcxx::global_ptr<size_t> imageSize = nullptr;
+        const int iterations = 20, clustersCount = 4;
         
         //master checks path for errors
         if(IS_MASTER_PROCESS) {
@@ -108,7 +107,6 @@ int main(int argc, char** argv) {
             }
             //processes assign pixels to centroids
             for(int pIndex = sectionStart; pIndex < sectionEnd; ++pIndex) {
-                if(localPixels[pIndex] < 12) localPixels[pIndex] = 0;
                 int closestCentroidIndex = 0;
                 int closestCentroidDistance = distance(localPixels[pIndex], localCentroids[closestCentroidIndex]);
                 for(int centroidIndex = 0; centroidIndex < clustersCount; ++centroidIndex) {
@@ -137,7 +135,6 @@ int main(int argc, char** argv) {
         }
         //After all iterations, pass once more over the array to assign pixels their centroids
         for(int pIndex = sectionStart; pIndex < sectionEnd; ++pIndex) {
-            if(localPixels[pIndex] < 12) continue;
             int closestCentroidIndex = 0;
             int closestCentroidDistance = distance(localPixels[pIndex], localCentroids[closestCentroidIndex]);
             for(int centroidIndex = 1; centroidIndex < clustersCount; ++centroidIndex) {
@@ -168,12 +165,15 @@ int main(int argc, char** argv) {
             Mat returnImage = overlap(sobelImage, image);
 
             std::string outputFilePath = outputFolderPath + "/" + imagePath.filename().u8string();
-            if(!imwrite(outputFilePath, returnImage)) {
+            if(!imwrite(outputFilePath, kmeansImage)) {
                 std::cerr << "Could not write image to \"" << outputFolderPath << "\"" << endl;
                 continue;
             } 
+            upcxx::delete_(imageSize);
+            upcxx::delete_array(globalImage_uchar);
+            upcxx::delete_array(centroids);
         }
-
+        
     }
     upcxx::finalize();
     return 0;

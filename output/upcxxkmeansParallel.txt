@@ -1,0 +1,66 @@
+1
+Elaspsed time : 0.634914
+Memory usage : 15192
+Elaspsed time : 1.02498
+Memory usage : 16636
+Elaspsed time : 1.62441
+Memory usage : 17092
+Elaspsed time : 2.5993
+Memory usage : 17916
+Elaspsed time : 2.8242
+Memory usage : 17916
+2
+Elaspsed time : 1.83942
+Memory usage : 14680
+Elaspsed time : 2.29004
+Memory usage : 16804
+Elaspsed time : 2.94593
+Memory usage : 17864
+Elaspsed time : 4.05019
+Memory usage : 19324
+Elaspsed time : 4.29614
+Memory usage : 19324
+4
+Elaspsed time : 1.66972
+Memory usage : 16208
+Elaspsed time : 2.45868
+Memory usage : 18740
+Elaspsed time : 3.63487
+Memory usage : 20264
+Elaspsed time : 5.66341
+Memory usage : 21892
+Elaspsed time : 6.10611
+Memory usage : 21892
+8
+Elaspsed time : 0.398917
+Memory usage : 16500
+Elaspsed time : 2.2819
+Memory usage : 19992
+Elaspsed time : 5.56627
+Memory usage : 22540
+Elaspsed time : 10.5237
+Memory usage : 24308
+Elaspsed time : 11.6496
+Memory usage : 24308
+16
+Elaspsed time : 1.29363
+Memory usage : 17452
+Elaspsed time : 4.68033
+Memory usage : 21680
+Elaspsed time : 10.402
+Memory usage : 23716
+Elaspsed time : 20.4693
+Memory usage : 26116
+Elaspsed time : 22.5919
+Memory usage : 26116
+32
+Elaspsed time : 0.372066
+Memory usage : 18808
+Elaspsed time : 6.83209
+Memory usage : 23704
+Elaspsed time : 16.2505
+Memory usage : 26552
+Elaspsed time : 30.2927
+Memory usage : 29328
+Elaspsed time : 33.6118
+Memory usage : 29328
