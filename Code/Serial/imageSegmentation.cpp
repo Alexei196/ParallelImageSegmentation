@@ -43,7 +43,7 @@ int main(int argc, char** argv){
             continue;
         }
 
-        Mat kimage = kMeans(image, 3,5, 2);
+        Mat kimage = kMeans(image, 4,10, 2);
         
         getrusage(RUSAGE_SELF, &resource_usage);
         int reservedMemory = resource_usage.ru_maxrss;

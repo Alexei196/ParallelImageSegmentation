@@ -47,7 +47,7 @@ int main(int argc, char **argv)
     {
         unsigned char * recvBuffer;
         unsigned char * sendBuffer;
-        int centroidCount = 3, iterations = 7;
+        int centroidCount = 4, iterations = 10;
         int *centroids;
         int imageCount;
         int * displs = (int*)malloc(comm_sz * sizeof(int));
