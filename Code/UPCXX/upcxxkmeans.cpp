@@ -5,6 +5,7 @@
 #include<opencv2/opencv.hpp>
 #include "sobel.hpp"
 #include "overlap.hpp"
+#include "kmeans.hpp"
 
 #define IS_MASTER_PROCESS my_rank == 0
 
@@ -27,20 +28,24 @@ int main(int argc, char** argv) {
     //designate folder of images and create folder for output
     const fs::path imagesFolder{argv[1]};
     if(IS_MASTER_PROCESS) {
+        if(fs::exists(imagesFolder)) {
+            std::cerr << "Cannot reach folder specified by path!" << std::endl;
+            upcxx::finalize();
+            return 1;
+        }
         outputFolderPath = imagesFolder.filename().u8string() + "_KMeans_Images";
         fs::create_directory(outputFolderPath);
+        std::cout << "Looking through the folder...\n";
     }
     //TODO ensure each process has access to imageEntry
     //for each entry in the directory
-    std::cout << "Looking through the folder...\n";
+    upcxx::barrier();
     for (auto const& imageEntry : fs::directory_iterator{imagesFolder}) {
         fs::path imagePath = imageEntry.path();
-
         const int iterations = 7, clustersCount = 3;
         upcxx::global_ptr<unsigned char> globalImage_uchar = nullptr;
         upcxx::global_ptr<int> centroids = nullptr;
-        size_t imageSize;
-        size_t* localImageSize;
+        upcxx::global_ptr<size_t> imageSize = nullptr;
         //master checks path for errors
         if(IS_MASTER_PROCESS) {
             //check for jpg
@@ -54,32 +59,32 @@ int main(int argc, char** argv) {
                 std::cerr << "Cannot read file \"" << imagePath << "\"\n";
                 continue;
             }
-            //TODO share imagesize between processes
-            imageSize = image.step[0] * image.rows;
-            std::cout << "imageSize : " << imageSize << std::endl;
-            imageGlobalSize = upcxx::new_<size_t>(imageSize);
 
+            imageSize = upcxx::new_<size_t>((size_t) image.step[0] * image.rows);
+            globalImage_uchar = upcxx::new_array<unsigned char>( imageSize.local()[0]);
             centroids = upcxx::new_array<int>(clustersCount);
+
+            std::cout << "imageSize : " << imageSize.local()[0] << std::endl;
+
             for(int i = 0; i < clustersCount; ++i) {
                 int randomNumber = (int) rand() % 256;
-                upcxx::rput(randomNumber, centroids + i);
+                upcxx::rput(randomNumber, centroids + i).wait();
                 std::cout << "centroid : " << randomNumber << std::endl;
             }
-
-            globalImage_uchar = upcxx::new_array<unsigned char>( imageSize);
-            upcxx::rput(image.data, globalImage_uchar, imageSize);
+            
+            upcxx::rput(image.data, globalImage_uchar, imageSize.local()[0]).wait();
             std::cout << "Read the image " << imagePath << std::endl;
         }
         //Do kmeans
-        imageGlobalSize = upcxx::broadcast(imageGlobalSize, 0).wait();
-        size_t sectionSize = ((size_t) localImageSize) / comm_sz;
-        size_t remainder = ((size_t)localImageSize) - (sectionSize * comm_sz);
         globalImage_uchar = upcxx::broadcast(globalImage_uchar, 0).wait();
         //distribute centroids
         centroids = upcxx::broadcast(centroids, 0).wait();
-        
+        size_t sectionSize = imageSize.local()[0]  / comm_sz;
+        size_t remainder = imageSize.local()[0] - (sectionSize * comm_sz);
+
         unsigned char* localPixels = globalImage_uchar.local();
         int* localCentroids = centroids.local();
+        
         long long int centroidSum[clustersCount], centroidCounter[clustersCount];
         int sectionStart = my_rank * sectionSize;
         int sectionEnd = my_rank =< remainder ? ((1 + my_rank) * sectionSize) + 1 : ((1 + my_rank) * sectionSize) + 2;
