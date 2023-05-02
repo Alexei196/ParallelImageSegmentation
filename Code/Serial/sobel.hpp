@@ -4,13 +4,12 @@
 using namespace cv;
 using namespace std;
 
-//Only works on square images
 Mat sobel(const Mat &gray_img, int threshold) {
     Mat sobel_img(gray_img.rows, gray_img.cols, CV_8UC1);
     if(threshold < 256) {
         threshold*= threshold;
     }
-
+#pragma omp parallel for collapse(2)
     for (int row = 0; row < gray_img.rows; row++)
         for (int col = 0; col < gray_img.cols; col++)
         {

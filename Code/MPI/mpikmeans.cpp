@@ -145,6 +145,8 @@ int main(int argc, char **argv)
             if(my_rank == 0) {
                 for (int centroid_index = 0; centroid_index < centroidCount; centroid_index++)
                 {
+                    //skip uncounted centroids
+                    if(globalCentroidCounter[centroid_index] == 0) continue;
                     int new_centroid = globalCentroidSum[centroid_index] / globalCentroidCounter[centroid_index];
                     centroids[centroid_index] = new_centroid;
                 } 

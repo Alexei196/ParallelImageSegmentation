@@ -23,7 +23,7 @@ Mat kMeans(const Mat& image, const int& clustersCount, const int& iterations, in
     //2. Assign data to closest centroid
     centroidAssigned = Mat(image.rows, image.cols, CV_8UC1);
     int lowestDistance, closestCentroid, c;
-    int colorScale = 256 / (clustersCount);
+    int colorScale = 255 / (clustersCount);
     long int y, x;
     //For each iteration of the k-means alg
     for(int i = 0; i < iterations; ++i) {
@@ -33,8 +33,8 @@ Mat kMeans(const Mat& image, const int& clustersCount, const int& iterations, in
         for(y = 0; y < image.rows; ++y) {
             for(x = 0; x < image.cols; ++x) {
                 // option for centroids to ignore all low value/black pixels
-                if((int)image.at<unsigned char>(y,x) < 24) {
-                    //continue;
+                if((int)image.at<unsigned char>(y,x) < 12) {
+                    centroidAssigned.at<unsigned char>(y,x) = (unsigned char) 0;
                 }
                 //For each centroid in existence
                 closestCentroid = 0;
@@ -47,7 +47,7 @@ Mat kMeans(const Mat& image, const int& clustersCount, const int& iterations, in
                     }
                 }
                 //Now that centroids are found, replace the pixels with the color of the centroid
-                centroidAssigned.at<unsigned char>(y,x) = (unsigned char) (closestCentroid * colorScale);
+                centroidAssigned.at<unsigned char>(y,x) = (unsigned char) (closestCentroid+1) * colorScale;
                 centroidSum[closestCentroid] += (long long int)image.at<unsigned char>(y,x);
                 centroidCount[closestCentroid] += 1;
             }
@@ -59,7 +59,7 @@ Mat kMeans(const Mat& image, const int& clustersCount, const int& iterations, in
                 fprintf(stderr, "Centroid %d did not gain any points!\n", c);
                 continue;
             }
-            centroids[c] = (long long int) (centroidSum[c] / (long long int) centroidCount[c]);
+            centroids[c] = (int) (centroidSum[c] / (long long int) centroidCount[c]);
         }
     }
     //4. perform 2 and 3 i amount of times   
