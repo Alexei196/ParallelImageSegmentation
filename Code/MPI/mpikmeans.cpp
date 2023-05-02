@@ -15,7 +15,7 @@ using namespace std;
 
 int brightness_distance(const int &l1, const int &l2);
 Mat sobel(const Mat &gray_img, int threshold);
-Mat overlap(const Mat &sobel_img, const Mat &orig_image);
+Mat overlap(Mat &sobel_img, Mat &orig_image);
 
 int main(int argc, char **argv)
 {
@@ -261,19 +261,18 @@ Mat sobel(const Mat &gray_img, int threshold)
     return sobel_img;
 }
 
-Mat overlap(const Mat &sobel_img, const Mat &orig_image) {
-
-    // Convert sobel image type to same type as original image to run bitwise_or
-    cv::Mat outputMatrix(sobel_img.rows, sobel_img.cols, CV_8UC1);
+Mat overlap(Mat &sobel_img, Mat &orig_image) {
+    Mat copy;
+    cvtColor(orig_image, copy, COLOR_GRAY2RGB);
     #pragma omp parallel for collapse(2)
     for (int row = 0; row < sobel_img.rows; row++)
         for (int col = 0; col < sobel_img.cols; col++)
         {
-            if(sobel_img.at<unsigned char>(row, col) == 255) {
-                outputMatrix.at<unsigned char>(row, col) = 255;
-            } else {
-                outputMatrix.at<unsigned char>(row, col) = orig_image.at<unsigned char>(row, col);
+            if(sobel_img.at<unsigned char>(row, col) == 255){
+                copy.at<Vec3b>(row, col).val[0] = (unsigned char) 0;
+                copy.at<Vec3b>(row, col).val[1] = (unsigned char) 0;
+                copy.at<Vec3b>(row, col).val[2] = (unsigned char) 255;
             }
         }
-    return outputMatrix;
+    return copy;
 }
