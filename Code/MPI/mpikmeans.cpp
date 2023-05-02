@@ -193,10 +193,13 @@ int main(int argc, char **argv)
             //cv::Mat outputMatrix(size, image.type()); // get new mat
             cv::Mat outputMatrix(image.rows, image.cols, image.type(), sendBuffer);
 
+            printf("before sobel is called\n");
             int threshold = 60;
             cv::Mat sobelOutput = sobel(outputMatrix, threshold);
+            printf("before overlap is called\n");
 
             cv::Mat overlapOutput = overlap(sobelOutput, image);
+            printf("after overlap is called");
 
             // and output the image as jpg.
             std::string outputFilePath = outputFolderPath + "/" + imageFile.path().filename().u8string(); 
@@ -204,9 +207,18 @@ int main(int argc, char **argv)
                 std::cerr << "error writing to \"" << outputFilePath << "\"\n";
                 continue;
             }
-
         }
-        MPI_Barrier(MPI_COMM_WORLD);
+
+        free(displs);
+        free(sectionSizePerThread);
+        free(recvBuffer);
+        free(centroids);
+        free(globalCentroidSum);
+        free(globalCentroidCounter);
+        free(localCentroidSum);
+        free(localCentroidCounter);
+
+        delete[] sectionBuffer;
     }
     MPI_Finalize();
     return 0;
