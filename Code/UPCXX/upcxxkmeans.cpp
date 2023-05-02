@@ -165,7 +165,7 @@ int main(int argc, char** argv) {
             Mat returnImage = overlap(sobelImage, image);
 
             std::string outputFilePath = outputFolderPath + "/" + imagePath.filename().u8string();
-            if(!imwrite(outputFilePath, kmeansImage)) {
+            if(!imwrite(outputFilePath, returnImage)) {
                 std::cerr << "Could not write image to \"" << outputFolderPath << "\"" << endl;
                 continue;
             } 
