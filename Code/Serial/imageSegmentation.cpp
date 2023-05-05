@@ -7,7 +7,10 @@
 #include<sys/resource.h>
 #include<time.h>
 #include<sys/time.h>
-#include<opencv2/opencv.hpp>
+#include <opencv2/core/mat.hpp>
+#include<opencv2/imgcodecs.hpp>
+#include<opencv2/imgproc.hpp>
+
 
 #define TIME(timeStruct) (double) timeStruct.tv_sec + (double) timeStruct.tv_usec * 0.000001
 

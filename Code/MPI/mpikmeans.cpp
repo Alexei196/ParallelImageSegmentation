@@ -2,7 +2,10 @@
 #include <iostream>
 #include <filesystem>
 #include <mpi.h>
-#include <opencv2/opencv.hpp>
+#include <opencv2/core/mat.hpp>
+#include<opencv2/imgcodecs.hpp>
+#include<opencv2/imgproc.hpp>
+
 #include <math.h>
 #include <climits>
 #include <limits.h>

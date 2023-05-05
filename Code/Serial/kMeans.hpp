@@ -1,7 +1,10 @@
 #include<iostream>
 #include<vector>
 #include<omp.h>
-#include<opencv2/opencv.hpp>
+#include <opencv2/core/mat.hpp>
+#include<opencv2/imgcodecs.hpp>
+#include<opencv2/imgproc.hpp>
+
 
 using namespace cv;
 
